@@ -18,13 +18,13 @@ const quickLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-secondary/30">
+    <footer className="border-t border-border bg-card">
       <div className="container py-12 md:py-16">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
                 <span className="text-xl font-bold text-primary-foreground">K</span>
               </div>
               <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>

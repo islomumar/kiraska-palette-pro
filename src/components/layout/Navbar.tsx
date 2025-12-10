@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, ShoppingCart, Phone } from "lucide-react";
+import { Menu, X, ShoppingCart, Phone, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
   { name: "Bosh sahifa", path: "/" },
-  { name: "Mahsulotlar", path: "/products" },
   { name: "Katalog", path: "/catalog" },
+  { name: "Mahsulotlar", path: "/products" },
   { name: "Biz haqimizda", path: "/about" },
   { name: "Aloqa", path: "/contact" },
 ];
@@ -17,27 +17,27 @@ export function Navbar() {
   const location = useLocation();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 shadow-sm">
       <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
             <span className="text-xl font-bold text-primary-foreground">K</span>
           </div>
           <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
               className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-secondary",
+                "px-4 py-2 text-sm font-medium transition-colors rounded-lg hover:text-primary",
                 location.pathname === link.path
-                  ? "text-primary bg-secondary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-primary"
+                  : "text-muted-foreground"
               )}
             >
               {link.name}
@@ -46,20 +46,23 @@ export function Navbar() {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden items-center gap-3 md:flex">
-          <a href="tel:+998901234567" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+        <div className="hidden items-center gap-4 lg:flex">
+          <button className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-secondary transition-colors">
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <a href="tel:+998901234567" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             <Phone className="h-4 w-4" />
             <span>+998 90 123 45 67</span>
           </a>
-          <Button variant="accent" size="sm">
+          <Button variant="accent" size="sm" className="rounded-full">
             <ShoppingCart className="h-4 w-4" />
-            Savat
+            <span>Savat</span>
           </Button>
         </div>
 
         {/* Mobile Menu Button */}
         <button
-          className="flex items-center justify-center rounded-lg p-2 text-foreground md:hidden hover:bg-secondary transition-colors"
+          className="flex items-center justify-center rounded-lg p-2 text-foreground lg:hidden hover:bg-secondary transition-colors"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -68,7 +71,7 @@ export function Navbar() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-16 border-b border-border bg-background p-4 md:hidden animate-fade-in">
+        <div className="absolute left-0 right-0 top-16 border-b border-border bg-card p-4 lg:hidden animate-fade-in">
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => (
               <Link
@@ -90,7 +93,7 @@ export function Navbar() {
                 <Phone className="h-4 w-4" />
                 +998 90 123 45 67
               </a>
-              <Button variant="accent" className="w-full">
+              <Button variant="accent" className="w-full rounded-full">
                 <ShoppingCart className="h-4 w-4" />
                 Savat
               </Button>
