@@ -2,15 +2,6 @@ import { Link } from "react-router-dom";
 import { mainCategories } from "@/data/products";
 import { ArrowRight } from "lucide-react";
 
-const categoryImages: Record<string, string> = {
-  kiraska: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=300&h=300&fit=crop",
-  lak: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop",
-  emal: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=300&h=300&fit=crop",
-  gruntovka: "https://images.unsplash.com/photo-1604147706283-d7119b5b822c?w=300&h=300&fit=crop",
-  shpaklyovka: "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=300&h=300&fit=crop",
-  rang: "https://images.unsplash.com/photo-1541123603104-512919d6a96c?w=300&h=300&fit=crop",
-};
-
 export function Categories() {
   return (
     <section className="py-16 md:py-24 bg-background">
@@ -20,7 +11,7 @@ export function Categories() {
             Kategoriyalar
           </h2>
           <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
-            Sizga kerakli mahsulotni toping. Qulay kategoriyalar bo'yicha ajratilgan.
+            Sizga kerakli bo'yoq mahsulotini toping. Qulay kategoriyalar bo'yicha ajratilgan.
           </p>
         </div>
 
@@ -35,7 +26,7 @@ export function Categories() {
               <div className="flex items-center gap-4 p-6">
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl">
                   <img
-                    src={categoryImages[category.slug]}
+                    src={category.image}
                     alt={category.name}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />

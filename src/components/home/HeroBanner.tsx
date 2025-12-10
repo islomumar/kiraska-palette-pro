@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import heroPaint from "@/assets/hero-paint.jpg";
+import heroPaint from "@/assets/hero-paint-new.jpg";
 
 export function HeroBanner() {
   return (
@@ -33,8 +33,8 @@ export function HeroBanner() {
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
-              O'zbekistondagi eng katta tanlash imkoniyati. 1000+ mahsulot, 50+ brend, 
-              bepul yetkazib berish va professional maslahat.
+              O'zbekistondagi eng katta tanlash imkoniyati. Kiraska, lak, emal, gruntovka va shpaklyovka - 
+              barchasi bir joyda. Bepul yetkazib berish!
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -67,9 +67,9 @@ export function HeroBanner() {
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <span className="text-lg">💬</span>
+                  <span className="text-lg">🎨</span>
                 </div>
-                <span className="text-sm font-medium">24/7 yordam</span>
+                <span className="text-sm font-medium">1000+ ranglar</span>
               </div>
             </div>
           </div>
@@ -80,7 +80,7 @@ export function HeroBanner() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-[3rem] -rotate-6 scale-95" />
               <img
                 src={heroPaint}
-                alt="Bo'yoq mahsulotlari"
+                alt="Bo'yoq mahsulotlari - rangdor bo'yoq chelaklar va cho'tkalar"
                 className="relative rounded-[2.5rem] object-cover w-full shadow-2xl animate-float"
               />
             </div>
@@ -91,7 +91,7 @@ export function HeroBanner() {
       {/* Curved bottom */}
       <div className="absolute bottom-0 left-0 right-0">
         <svg viewBox="0 0 1440 80" className="w-full h-auto" preserveAspectRatio="none">
-          <ellipse cx="720" cy="80" rx="900" ry="80" fill="hsl(var(--secondary) / 0.5)" />
+          <ellipse cx="720" cy="80" rx="900" ry="80" fill="hsl(var(--background))" />
         </svg>
       </div>
     </section>
