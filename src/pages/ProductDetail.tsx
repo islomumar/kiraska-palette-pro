@@ -13,7 +13,7 @@ const ProductDetail = () => {
       <Layout>
         <div className="container py-24 text-center">
           <h1 className="text-2xl font-bold text-foreground">Mahsulot topilmadi</h1>
-          <Button asChild variant="outline" className="mt-4">
+          <Button asChild variant="outline" className="mt-4 rounded-full">
             <Link to="/products">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Mahsulotlarga qaytish
@@ -39,9 +39,9 @@ const ProductDetail = () => {
 
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
             {/* Image */}
-            <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary">
+            <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary/30 p-8">
               {product.isBestseller && (
-                <span className="absolute left-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground">
+                <span className="absolute left-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
                   <Star className="h-4 w-4" />
                   Bestseller
                 </span>
@@ -54,7 +54,7 @@ const ProductDetail = () => {
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             </div>
 
@@ -80,7 +80,7 @@ const ProductDetail = () => {
                   <p className="text-sm font-medium text-foreground mb-3">Mavjud ranglar:</p>
                   <div className="flex flex-wrap gap-2">
                     {product.colors.map((color) => (
-                      <span key={color} className="px-4 py-2 bg-secondary rounded-lg text-sm font-medium text-secondary-foreground">
+                      <span key={color} className="px-4 py-2 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
                         {color}
                       </span>
                     ))}
@@ -96,14 +96,14 @@ const ProductDetail = () => {
 
               {/* Features */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-secondary rounded-xl">
+                <div className="flex items-center gap-3 p-4 bg-secondary rounded-2xl">
                   <Truck className="h-6 w-6 text-primary" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Bepul yetkazib berish</p>
                     <p className="text-xs text-muted-foreground">100,000 so'mdan oshsa</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-4 bg-secondary rounded-xl">
+                <div className="flex items-center gap-3 p-4 bg-secondary rounded-2xl">
                   <Shield className="h-6 w-6 text-primary" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Kafolat</p>
@@ -114,11 +114,11 @@ const ProductDetail = () => {
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button variant="accent" size="xl" className="flex-1">
+                <Button variant="accent" size="xl" className="flex-1 rounded-full">
                   <ShoppingCart className="h-5 w-5 mr-2" />
                   Savatga qo'shish
                 </Button>
-                <Button variant="outline" size="xl" asChild>
+                <Button variant="outline" size="xl" asChild className="rounded-full">
                   <a href="tel:+998901234567">
                     <Phone className="h-5 w-5 mr-2" />
                     Qo'ng'iroq qilish

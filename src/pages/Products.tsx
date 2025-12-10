@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { products, formatPrice, categories } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Star, Filter } from "lucide-react";
+import { ShoppingCart, Search, Star } from "lucide-react";
 
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,13 +20,13 @@ const Products = () => {
   return (
     <Layout>
       {/* Header */}
-      <section className="bg-gradient-hero py-12 md:py-16">
+      <section className="bg-primary py-12 md:py-16">
         <div className="container">
           <h1 className="text-3xl font-bold text-primary-foreground md:text-4xl text-center">
             Barcha mahsulotlar
           </h1>
           <p className="mt-3 text-primary-foreground/80 text-center max-w-xl mx-auto">
-            1000+ dan ortiq sifatli bo'yoq va lak mahsulotlarini tanlang
+            1000+ dan ortiq sifatli bo'yoq, lak, emal va boshqa mahsulotlarni tanlang
           </p>
         </div>
       </section>
@@ -42,23 +42,23 @@ const Products = () => {
                 placeholder="Mahsulot qidirish..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12"
+                className="pl-10 h-12 rounded-full"
               />
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
               <Button
-                variant={selectedCategory === null ? "default" : "outline"}
+                variant={selectedCategory === null ? "accent" : "outline"}
                 onClick={() => setSelectedCategory(null)}
-                className="shrink-0"
+                className="shrink-0 rounded-full"
               >
                 Barchasi
               </Button>
               {categories.map((cat) => (
                 <Button
                   key={cat.slug}
-                  variant={selectedCategory === cat.slug ? "default" : "outline"}
+                  variant={selectedCategory === cat.slug ? "accent" : "outline"}
                   onClick={() => setSelectedCategory(cat.slug)}
-                  className="shrink-0"
+                  className="shrink-0 rounded-full"
                 >
                   {cat.icon} {cat.name}
                 </Button>
@@ -71,19 +71,19 @@ const Products = () => {
             {filteredProducts.map((product, index) => (
               <div
                 key={product.id}
-                className="group relative overflow-hidden rounded-2xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
+                className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
                 {/* Badges */}
                 <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
                   {product.isBestseller && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                       <Star className="h-3 w-3" />
                       Bestseller
                     </span>
                   )}
                   {product.isNew && (
-                    <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                    <span className="inline-flex items-center rounded-full bg-foreground px-3 py-1 text-xs font-semibold text-background">
                       Yangi
                     </span>
                   )}
@@ -95,17 +95,17 @@ const Products = () => {
                 </div>
 
                 {/* Image */}
-                <Link to={`/products/${product.id}`} className="block aspect-square overflow-hidden">
+                <Link to={`/products/${product.id}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
                   />
                 </Link>
 
                 {/* Content */}
                 <div className="p-5">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <p className="text-xs font-medium text-primary uppercase tracking-wide">
                     {product.brand}
                   </p>
                   <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
@@ -137,7 +137,7 @@ const Products = () => {
           {filteredProducts.length === 0 && (
             <div className="text-center py-16">
               <p className="text-muted-foreground text-lg">Mahsulot topilmadi</p>
-              <Button variant="outline" className="mt-4" onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}>
+              <Button variant="outline" className="mt-4 rounded-full" onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}>
                 Filterni tozalash
               </Button>
             </div>
