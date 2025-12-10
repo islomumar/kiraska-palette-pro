@@ -1,84 +1,98 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Percent } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import heroPaint from "@/assets/hero-paint.jpg";
 
 export function HeroBanner() {
   return (
-    <section className="relative overflow-hidden bg-gradient-hero py-16 md:py-24 lg:py-32">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
-        <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-primary-foreground/10 blur-3xl" />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-accent/10 blur-3xl" />
+    <section className="relative overflow-hidden bg-secondary/50">
+      {/* Paint drip effect */}
+      <div className="absolute top-0 left-0 right-0 z-10">
+        <svg viewBox="0 0 1440 120" className="w-full h-auto" preserveAspectRatio="none">
+          <path 
+            fill="hsl(var(--primary))" 
+            d="M0,0 L1440,0 L1440,40 
+               Q1400,40 1380,70 Q1360,100 1340,70 Q1320,40 1280,40
+               Q1200,40 1180,60 Q1160,80 1140,60 Q1120,40 1080,40
+               Q1000,40 980,55 Q960,70 940,55 Q920,40 880,40
+               Q800,40 780,80 Q760,120 740,80 Q720,40 680,40
+               Q600,40 580,50 Q560,60 540,50 Q520,40 480,40
+               Q400,40 380,65 Q360,90 340,65 Q320,40 280,40
+               Q200,40 180,75 Q160,110 140,75 Q120,40 80,40
+               Q40,40 20,55 Q0,70 0,40 Z"
+          />
+        </svg>
       </div>
 
-      <div className="container relative z-10">
+      <div className="container relative z-20 pt-28 pb-16 md:pt-36 md:pb-24">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
           <div className="space-y-6 text-center lg:text-left animate-fade-in-up">
-            {/* Sale Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full bg-accent/20 px-4 py-2 text-sm font-medium text-accent-foreground backdrop-blur-sm">
-              <Percent className="h-4 w-4" />
-              <span>30% gacha chegirma!</span>
-            </div>
-
-            <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground md:text-5xl lg:text-6xl">
-              Sifatli bo'yoq va lak mahsulotlari
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground md:text-5xl lg:text-6xl">
+              Eksklyuziv
+              <span className="block text-primary">Bo'yoq Mahsulotlari</span>
             </h1>
 
-            <p className="text-lg text-primary-foreground/80 max-w-xl mx-auto lg:mx-0">
-              O'zbekistondagi eng katta tanlash imkoniyati. 1000+ mahsulot, 50+ brend, bepul yetkazib berish va professional maslahat.
+            <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+              O'zbekistondagi eng katta tanlash imkoniyati. 1000+ mahsulot, 50+ brend, 
+              bepul yetkazib berish va professional maslahat.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button asChild variant="hero" size="xl">
+              <Button asChild variant="accent" size="xl" className="rounded-full shadow-glow">
                 <Link to="/products">
-                  Mahsulotlarni ko'rish
+                  Xarid qilish
                   <ArrowRight className="h-5 w-5 ml-1" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="xl" className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground">
-                <Link to="/contact">
-                  Bepul maslahat
+              <Button asChild variant="outline" size="xl" className="rounded-full border-2">
+                <Link to="/catalog">
+                  Katalogni ko'rish
                 </Link>
               </Button>
             </div>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-4">
-              <div className="flex items-center gap-2 text-primary-foreground/80">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-6">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-lg">🚚</span>
                 </div>
-                <span className="text-sm font-medium">Bepul yetkazib berish</span>
+                <span className="text-sm font-medium">Bepul yetkazish</span>
               </div>
-              <div className="flex items-center gap-2 text-primary-foreground/80">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-lg">✓</span>
                 </div>
-                <span className="text-sm font-medium">Original mahsulotlar</span>
+                <span className="text-sm font-medium">Original</span>
               </div>
-              <div className="flex items-center gap-2 text-primary-foreground/80">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-lg">💬</span>
                 </div>
-                <span className="text-sm font-medium">24/7 qo'llab-quvvatlash</span>
+                <span className="text-sm font-medium">24/7 yordam</span>
               </div>
             </div>
           </div>
 
           {/* Hero Image */}
-          <div className="relative hidden lg:block animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-            <div className="relative aspect-square max-w-lg mx-auto">
-              <div className="absolute inset-0 rounded-3xl bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 rotate-6" />
-              <div className="absolute inset-0 rounded-3xl bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 -rotate-3" />
+          <div className="relative animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-[3rem] -rotate-6 scale-95" />
               <img
-                src="https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=600&h=600&fit=crop"
+                src={heroPaint}
                 alt="Bo'yoq mahsulotlari"
-                className="relative rounded-3xl object-cover w-full h-full shadow-2xl"
+                className="relative rounded-[2.5rem] object-cover w-full shadow-2xl animate-float"
               />
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Curved bottom */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg viewBox="0 0 1440 80" className="w-full h-auto" preserveAspectRatio="none">
+          <ellipse cx="720" cy="80" rx="900" ry="80" fill="hsl(var(--secondary) / 0.5)" />
+        </svg>
       </div>
     </section>
   );

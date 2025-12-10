@@ -1,15 +1,15 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Phone, MessageCircle, ArrowRight } from "lucide-react";
+import { Phone, ArrowRight } from "lucide-react";
 
 export function CTASection() {
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-hero p-8 md:p-12 lg:p-16">
-          {/* Decorative elements */}
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-primary-foreground/10 blur-3xl" />
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-primary p-8 md:p-12 lg:p-16">
+          {/* Decorative drips */}
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary-foreground/10 blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-primary-foreground/10 blur-3xl" />
 
           <div className="relative z-10 grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
             <div className="space-y-6 text-center lg:text-left">
@@ -22,16 +22,16 @@ export function CTASection() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-end">
-              <Button asChild variant="hero" size="xl">
+              <Button asChild size="xl" className="rounded-full bg-card text-foreground hover:bg-card/90 shadow-lg">
                 <Link to="/products">
                   Buyurtma berish
                   <ArrowRight className="h-5 w-5 ml-1" />
                 </Link>
               </Button>
-              <Button asChild size="xl" className="bg-primary-foreground/10 border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20">
+              <Button asChild size="xl" variant="outline" className="rounded-full border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
                 <a href="tel:+998901234567">
                   <Phone className="h-5 w-5 mr-2" />
-                  Qo'ng'iroq qilish
+                  Qo'ng'iroq
                 </a>
               </Button>
             </div>
