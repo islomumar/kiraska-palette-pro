@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PhoneInput, isValidPhone } from '@/components/ui/phone-input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, Loader2 } from 'lucide-react';
@@ -17,22 +18,29 @@ export default function Cart() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     customerName: '',
-    phone: '',
+    phone: '+998',
     address: '',
     notes: '',
   });
+  const [phoneError, setPhoneError] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError('');
     
-    if (!formData.customerName.trim() || !formData.phone.trim() || !formData.address.trim()) {
+    if (!formData.customerName.trim() || !formData.address.trim()) {
       toast({
         title: 'Xatolik',
         description: 'Iltimos, barcha maydonlarni to\'ldiring',
         variant: 'destructive',
       });
+      return;
+    }
+
+    if (!isValidPhone(formData.phone)) {
+      setPhoneError("Telefon raqami noto'g'ri. Masalan: +998 90 123 45 67");
       return;
     }
 
@@ -202,13 +210,14 @@ export default function Cart() {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefon raqam *</Label>
-                  <Input
+                  <PhoneInput
                     id="phone"
-                    type="tel"
-                    placeholder="+998 90 123 45 67"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
+                    onChange={(value) => {
+                      setFormData({ ...formData, phone: value });
+                      setPhoneError('');
+                    }}
+                    error={phoneError}
                   />
                 </div>
 
