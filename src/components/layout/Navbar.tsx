@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, ShoppingCart, Phone, Search } from "lucide-react";
+import { Menu, X, ShoppingCart, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/contexts/CartContext";
-
 const navLinks = [
   { name: "Bosh sahifa", path: "/" },
   { name: "Katalog", path: "/catalog" },
@@ -49,13 +48,16 @@ export function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-4 lg:flex">
-          <button className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-secondary transition-colors">
-            <Search className="h-5 w-5 text-muted-foreground" />
-          </button>
           <a href="tel:+998901234567" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             <Phone className="h-4 w-4" />
             <span>+998 90 123 45 67</span>
           </a>
+          <Button variant="outline" size="sm" className="rounded-full" asChild>
+            <a href="tel:+998901234567">
+              <Phone className="h-4 w-4 mr-2" />
+              Qo'ng'iroq
+            </a>
+          </Button>
           <Button variant="accent" size="sm" className="rounded-full relative" asChild>
             <Link to="/cart">
               <ShoppingCart className="h-4 w-4" />
