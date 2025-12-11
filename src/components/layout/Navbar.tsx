@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, ShoppingCart, Phone, Search } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, ShoppingCart, Phone, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { name: "Bosh sahifa", path: "/" },
@@ -15,6 +16,16 @@ const navLinks = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+
+  const handleAdminClick = () => {
+    if (user && isAdmin) {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/admin/login');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 shadow-sm">
@@ -58,6 +69,13 @@ export function Navbar() {
             <ShoppingCart className="h-4 w-4" />
             <span>Savat</span>
           </Button>
+          <button
+            onClick={handleAdminClick}
+            className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-secondary transition-colors"
+            title="Admin Panel"
+          >
+            <Settings className="h-5 w-5 text-muted-foreground" />
+          </button>
         </div>
 
         {/* Mobile Menu Button */}
