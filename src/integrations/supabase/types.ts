@@ -193,6 +193,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -218,7 +225,74 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      products_public: {
+        Row: {
+          brand: string | null
+          category_id: string | null
+          color_name: string | null
+          created_at: string | null
+          full_description: string | null
+          id: string | null
+          image_url: string | null
+          in_stock: boolean | null
+          is_bestseller: boolean | null
+          is_featured: boolean | null
+          name: string | null
+          old_price: number | null
+          price: number | null
+          short_description: string | null
+          slug: string | null
+          updated_at: string | null
+          volume: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category_id?: string | null
+          color_name?: string | null
+          created_at?: string | null
+          full_description?: string | null
+          id?: string | null
+          image_url?: string | null
+          in_stock?: boolean | null
+          is_bestseller?: boolean | null
+          is_featured?: boolean | null
+          name?: string | null
+          old_price?: number | null
+          price?: number | null
+          short_description?: string | null
+          slug?: string | null
+          updated_at?: string | null
+          volume?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category_id?: string | null
+          color_name?: string | null
+          created_at?: string | null
+          full_description?: string | null
+          id?: string | null
+          image_url?: string | null
+          in_stock?: boolean | null
+          is_bestseller?: boolean | null
+          is_featured?: boolean | null
+          name?: string | null
+          old_price?: number | null
+          price?: number | null
+          short_description?: string | null
+          slug?: string | null
+          updated_at?: string | null
+          volume?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
