@@ -1,9 +1,20 @@
 import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Clock, Instagram, Send } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { useEditMode } from "@/contexts/EditModeContext";
+import { EditableText } from "@/components/admin/EditableText";
 
 export function Footer() {
   const { getText } = useSiteContent();
+  const { isEditMode } = useEditMode();
+  const linkPrefix = isEditMode ? '/admin/site-content' : '';
+
+  const renderText = (key: string, fallback: string) => {
+    if (isEditMode) {
+      return <EditableText contentKey={key} fallback={fallback} />;
+    }
+    return getText(key, fallback);
+  };
 
   const categories = [
     { name: "Kiraska", path: "/catalog?category=kiraska" },
@@ -27,114 +38,73 @@ export function Footer() {
     <footer className="border-t border-border bg-card">
       <div className="container py-12 md:py-16">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {/* Company Info */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to={`${linkPrefix}/`} className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
                 <span className="text-xl font-bold text-primary-foreground">K</span>
               </div>
               <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {getText('footer_description', "O'zbekistondagi eng katta bo'yoq va lak mahsulotlari do'koni. Sifatli mahsulotlar, qulay narxlar.")}
+              {renderText('footer_description', "O'zbekistondagi eng katta bo'yoq va lak mahsulotlari do'koni. Sifatli mahsulotlar, qulay narxlar.")}
             </p>
             <div className="flex gap-3">
-              <a
-                href="https://t.me/kiraska_uz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              <a href="https://t.me/kiraska_uz" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                 <Send className="h-5 w-5" />
               </a>
-              <a
-                href="https://instagram.com/kiraska_uz"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              <a href="https://instagram.com/kiraska_uz" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
             </div>
           </div>
 
-          {/* Categories */}
           <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground">
-              {getText('footer_categories_title', 'Kategoriyalar')}
-            </h4>
+            <h4 className="text-base font-semibold text-foreground">{renderText('footer_categories_title', 'Kategoriyalar')}</h4>
             <ul className="space-y-2">
               {categories.map((category) => (
                 <li key={category.name}>
-                  <Link
-                    to={category.path}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {category.name}
-                  </Link>
+                  <Link to={`${linkPrefix}${category.path}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{category.name}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Quick Links */}
           <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground">
-              {getText('footer_links_title', 'Tezkor havolalar')}
-            </h4>
+            <h4 className="text-base font-semibold text-foreground">{renderText('footer_links_title', 'Tezkor havolalar')}</h4>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.path}>
-                  <Link
-                    to={link.path}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.name}
-                  </Link>
+                  <Link to={`${linkPrefix}${link.path}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{link.name}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact Info */}
           <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground">
-              {getText('footer_contact_title', 'Aloqa')}
-            </h4>
+            <h4 className="text-base font-semibold text-foreground">{renderText('footer_contact_title', 'Aloqa')}</h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <span className="text-sm text-muted-foreground">
-                  {getText('footer_address', "Toshkent sh., Chilonzor tumani, 15-mavze, 25-uy")}
-                </span>
+                <span className="text-sm text-muted-foreground">{renderText('footer_address', "Toshkent sh., Chilonzor tumani, 15-mavze, 25-uy")}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-primary shrink-0" />
-                <a href={phoneLink} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  {phoneNumber}
-                </a>
+                <a href={phoneLink} className="text-sm text-muted-foreground hover:text-primary transition-colors">{renderText('header_phone', '+998 90 123 45 67')}</a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-primary shrink-0" />
-                <a href={`mailto:${getText('footer_email', 'info@kiraska.uz')}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  {getText('footer_email', 'info@kiraska.uz')}
-                </a>
+                <a href={`mailto:${getText('footer_email', 'info@kiraska.uz')}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{renderText('footer_email', 'info@kiraska.uz')}</a>
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-primary shrink-0" />
-                <span className="text-sm text-muted-foreground">
-                  {getText('footer_hours', 'Dush-Shan: 09:00 - 18:00')}
-                </span>
+                <span className="text-sm text-muted-foreground">{renderText('footer_hours', 'Dush-Shan: 09:00 - 18:00')}</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div className="mt-12 border-t border-border pt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} {getText('footer_copyright', 'Kiraska.uz. Barcha huquqlar himoyalangan.')}
-          </p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} {renderText('footer_copyright', 'Kiraska.uz. Barcha huquqlar himoyalangan.')}</p>
         </div>
       </div>
     </footer>
