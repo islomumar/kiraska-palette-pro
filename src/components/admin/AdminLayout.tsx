@@ -5,6 +5,7 @@ import {
   LayoutDashboard, 
   Package, 
   FolderTree, 
+  ShoppingCart,
   LogOut,
   ChevronRight,
   Loader2
@@ -18,6 +19,7 @@ interface AdminLayoutProps {
 
 const sidebarLinks = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Buyurtmalar', path: '/admin/orders', icon: ShoppingCart },
   { name: 'Mahsulotlar', path: '/admin/products', icon: Package },
   { name: 'Kategoriyalar', path: '/admin/categories', icon: FolderTree },
 ];
