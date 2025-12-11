@@ -1,22 +1,28 @@
 import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Clock, Instagram, Send } from "lucide-react";
-
-const categories = [
-  { name: "Kiraska", path: "/catalog?category=kiraska" },
-  { name: "Lak", path: "/catalog?category=lak" },
-  { name: "Emal", path: "/catalog?category=emal" },
-  { name: "Gruntovka", path: "/catalog?category=gruntovka" },
-  { name: "Shpaklyovka", path: "/catalog?category=shpaklyovka" },
-];
-
-const quickLinks = [
-  { name: "Bosh sahifa", path: "/" },
-  { name: "Mahsulotlar", path: "/products" },
-  { name: "Biz haqimizda", path: "/about" },
-  { name: "Aloqa", path: "/contact" },
-];
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 export function Footer() {
+  const { getText } = useSiteContent();
+
+  const categories = [
+    { name: "Kiraska", path: "/catalog?category=kiraska" },
+    { name: "Lak", path: "/catalog?category=lak" },
+    { name: "Emal", path: "/catalog?category=emal" },
+    { name: "Gruntovka", path: "/catalog?category=gruntovka" },
+    { name: "Shpaklyovka", path: "/catalog?category=shpaklyovka" },
+  ];
+
+  const quickLinks = [
+    { name: getText('nav_home', 'Bosh sahifa'), path: "/" },
+    { name: getText('nav_products', 'Mahsulotlar'), path: "/products" },
+    { name: getText('nav_about', 'Biz haqimizda'), path: "/about" },
+    { name: getText('nav_contact', 'Aloqa'), path: "/contact" },
+  ];
+
+  const phoneNumber = getText('header_phone', '+998 90 123 45 67');
+  const phoneLink = `tel:${phoneNumber.replace(/\s/g, '')}`;
+
   return (
     <footer className="border-t border-border bg-card">
       <div className="container py-12 md:py-16">
@@ -30,7 +36,7 @@ export function Footer() {
               <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              O'zbekistondagi eng katta bo'yoq va lak mahsulotlari do'koni. Sifatli mahsulotlar, qulay narxlar.
+              {getText('footer_description', "O'zbekistondagi eng katta bo'yoq va lak mahsulotlari do'koni. Sifatli mahsulotlar, qulay narxlar.")}
             </p>
             <div className="flex gap-3">
               <a
@@ -54,7 +60,9 @@ export function Footer() {
 
           {/* Categories */}
           <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground">Kategoriyalar</h4>
+            <h4 className="text-base font-semibold text-foreground">
+              {getText('footer_categories_title', 'Kategoriyalar')}
+            </h4>
             <ul className="space-y-2">
               {categories.map((category) => (
                 <li key={category.name}>
@@ -71,10 +79,12 @@ export function Footer() {
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground">Tezkor havolalar</h4>
+            <h4 className="text-base font-semibold text-foreground">
+              {getText('footer_links_title', 'Tezkor havolalar')}
+            </h4>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
-                <li key={link.name}>
+                <li key={link.path}>
                   <Link
                     to={link.path}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -88,30 +98,32 @@ export function Footer() {
 
           {/* Contact Info */}
           <div className="space-y-4">
-            <h4 className="text-base font-semibold text-foreground">Aloqa</h4>
+            <h4 className="text-base font-semibold text-foreground">
+              {getText('footer_contact_title', 'Aloqa')}
+            </h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span className="text-sm text-muted-foreground">
-                  Toshkent sh., Chilonzor tumani, 15-mavze, 25-uy
+                  {getText('footer_address', "Toshkent sh., Chilonzor tumani, 15-mavze, 25-uy")}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-primary shrink-0" />
-                <a href="tel:+998901234567" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  +998 90 123 45 67
+                <a href={phoneLink} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  {phoneNumber}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-primary shrink-0" />
-                <a href="mailto:info@kiraska.uz" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  info@kiraska.uz
+                <a href={`mailto:${getText('footer_email', 'info@kiraska.uz')}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  {getText('footer_email', 'info@kiraska.uz')}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-primary shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  Dush-Shan: 09:00 - 18:00
+                  {getText('footer_hours', 'Dush-Shan: 09:00 - 18:00')}
                 </span>
               </li>
             </ul>
@@ -121,7 +133,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 border-t border-border pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Kiraska.uz. Barcha huquqlar himoyalangan.
+            © {new Date().getFullYear()} {getText('footer_copyright', 'Kiraska.uz. Barcha huquqlar himoyalangan.')}
           </p>
         </div>
       </div>

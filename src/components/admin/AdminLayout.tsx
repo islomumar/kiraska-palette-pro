@@ -10,7 +10,8 @@ import {
   LogOut,
   ChevronRight,
   Loader2,
-  Warehouse
+  Warehouse,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       { name: 'Mahsulotlar', path: '/admin/products', icon: Package, roles: ['superadmin', 'admin'] },
       { name: 'Ombor', path: '/admin/inventory', icon: Warehouse, roles: ['superadmin', 'admin'] },
       { name: 'Kategoriyalar', path: '/admin/categories', icon: FolderTree, roles: ['superadmin', 'admin'] },
+      { name: 'Sayt kontenti', path: '/admin/site-content', icon: FileText, roles: ['superadmin', 'admin'] },
       { name: 'Foydalanuvchilar', path: '/admin/users', icon: Users, roles: ['superadmin'] },
     ];
 

@@ -2,8 +2,11 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import heroPaint from "@/assets/hero-paint-new.jpg";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 export function HeroBanner() {
+  const { getText } = useSiteContent();
+
   return (
     <section className="relative overflow-hidden bg-secondary/50">
       {/* Paint drip effect */}
@@ -28,25 +31,24 @@ export function HeroBanner() {
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
           <div className="space-y-6 text-center lg:text-left animate-fade-in-up">
             <h1 className="text-4xl font-extrabold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-              Eksklyuziv
-              <span className="block text-primary">Bo'yoq Mahsulotlari</span>
+              {getText('hero_title_1', 'Eksklyuziv')}
+              <span className="block text-primary">{getText('hero_title_2', "Bo'yoq Mahsulotlari")}</span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
-              O'zbekistondagi eng katta tanlash imkoniyati. Kiraska, lak, emal, gruntovka va shpaklyovka - 
-              barchasi bir joyda. Bepul yetkazib berish!
+              {getText('hero_description', "O'zbekistondagi eng katta tanlash imkoniyati. Kiraska, lak, emal, gruntovka va shpaklyovka - barchasi bir joyda. Bepul yetkazib berish!")}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button asChild variant="accent" size="xl" className="rounded-full shadow-glow">
                 <Link to="/products">
-                  Xarid qilish
+                  {getText('hero_btn_shop', 'Xarid qilish')}
                   <ArrowRight className="h-5 w-5 ml-1" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="xl" className="rounded-full border-2">
                 <Link to="/catalog">
-                  Katalogni ko'rish
+                  {getText('hero_btn_catalog', "Katalogni ko'rish")}
                 </Link>
               </Button>
             </div>
@@ -57,19 +59,19 @@ export function HeroBanner() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-lg">🚚</span>
                 </div>
-                <span className="text-sm font-medium">Bepul yetkazish</span>
+                <span className="text-sm font-medium">{getText('hero_badge_delivery', 'Bepul yetkazish')}</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-lg">✓</span>
                 </div>
-                <span className="text-sm font-medium">Original</span>
+                <span className="text-sm font-medium">{getText('hero_badge_original', 'Original')}</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-lg">🎨</span>
                 </div>
-                <span className="text-sm font-medium">1000+ ranglar</span>
+                <span className="text-sm font-medium">{getText('hero_badge_colors', '1000+ ranglar')}</span>
               </div>
             </div>
           </div>
@@ -82,6 +84,7 @@ export function HeroBanner() {
                 src={heroPaint}
                 alt="Bo'yoq mahsulotlari - rangdor bo'yoq chelaklar va cho'tkalar"
                 className="relative rounded-[2.5rem] object-cover w-full shadow-2xl animate-float"
+                loading="eager"
               />
             </div>
           </div>

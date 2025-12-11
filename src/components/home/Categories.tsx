@@ -1,17 +1,20 @@
 import { Link } from "react-router-dom";
 import { mainCategories } from "@/data/products";
 import { ArrowRight } from "lucide-react";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 export function Categories() {
+  const { getText } = useSiteContent();
+
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-primary md:text-4xl">
-            Kategoriyalar
+            {getText('categories_title', 'Kategoriyalar')}
           </h2>
           <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
-            Sizga kerakli bo'yoq mahsulotini toping. Qulay kategoriyalar bo'yicha ajratilgan.
+            {getText('categories_description', "Sizga kerakli bo'yoq mahsulotini toping. Qulay kategoriyalar bo'yicha ajratilgan.")}
           </p>
         </div>
 
@@ -29,6 +32,7 @@ export function Categories() {
                     src={category.image}
                     alt={category.name}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
                   />
                 </div>
                 <div className="flex-1">

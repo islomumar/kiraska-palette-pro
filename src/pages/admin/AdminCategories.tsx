@@ -41,14 +41,12 @@ interface Category {
   name: string;
   slug: string;
   description: string | null;
-  image_url: string | null;
 }
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Kategoriya nomi kiritilishi shart'),
   slug: z.string().min(1, 'Slug kiritilishi shart'),
   description: z.string().nullable(),
-  image_url: z.string().nullable(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -68,14 +66,13 @@ export default function AdminCategories() {
     name: '',
     slug: '',
     description: '',
-    image_url: '',
   });
 
   const fetchCategories = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, slug, description')
       .order('name');
 
     if (error) {
@@ -113,7 +110,7 @@ export default function AdminCategories() {
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    setFormData({ name: '', slug: '', description: '', image_url: '' });
+    setFormData({ name: '', slug: '', description: '' });
     setErrors({});
     setIsDialogOpen(true);
   };
@@ -124,7 +121,6 @@ export default function AdminCategories() {
       name: category.name,
       slug: category.slug,
       description: category.description || '',
-      image_url: category.image_url || '',
     });
     setErrors({});
     setIsDialogOpen(true);
@@ -150,7 +146,6 @@ export default function AdminCategories() {
       name: formData.name,
       slug: formData.slug,
       description: formData.description || null,
-      image_url: formData.image_url || null,
     };
 
     let error;
@@ -245,7 +240,6 @@ export default function AdminCategories() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Rasm</TableHead>
                       <TableHead>Nomi</TableHead>
                       <TableHead>Slug</TableHead>
                       <TableHead>Tavsif</TableHead>
@@ -255,21 +249,6 @@ export default function AdminCategories() {
                   <TableBody>
                     {categories.map((category) => (
                       <TableRow key={category.id}>
-                        <TableCell>
-                          <div className="h-12 w-12 overflow-hidden rounded-lg bg-muted">
-                            {category.image_url ? (
-                              <img
-                                src={category.image_url}
-                                alt={category.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center">
-                                <FolderTree className="h-6 w-6 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
                         <TableCell className="font-medium">{category.name}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {category.slug}
@@ -348,18 +327,6 @@ export default function AdminCategories() {
                     setFormData((prev) => ({ ...prev, description: e.target.value }))
                   }
                   rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cat-image">Rasm URL</Label>
-                <Input
-                  id="cat-image"
-                  value={formData.image_url || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, image_url: e.target.value }))
-                  }
-                  placeholder="https://example.com/image.jpg"
                 />
               </div>
 
