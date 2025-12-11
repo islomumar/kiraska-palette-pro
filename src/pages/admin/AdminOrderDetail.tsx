@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, User, Phone, MapPin, Package, Calendar } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { ArrowLeft, Loader2, User, Phone, MapPin, Package, Calendar, Lock, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 
 type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
@@ -39,6 +40,14 @@ interface Order {
   updated_at: string;
 }
 
+interface LimitedOrder {
+  id: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const statusLabels: Record<OrderStatus, string> = {
   pending: 'Kutilmoqda',
   processing: 'Jarayonda',
@@ -58,10 +67,16 @@ export default function AdminOrderDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { userRole } = useAuth();
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: ['admin-order', id],
+  const isManager = userRole === 'manager';
+  const canViewFullData = userRole === 'admin' || userRole === 'superadmin';
+  const canUpdateStatus = userRole === 'admin' || userRole === 'superadmin';
+
+  // Fetch full order for admin/superadmin
+  const { data: fullOrder, isLoading: isLoadingFull } = useQuery({
+    queryKey: ['admin-order-full', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders' as any)
@@ -73,8 +88,36 @@ export default function AdminOrderDetail() {
       if (!data) throw new Error('Order not found');
       return data as unknown as Order;
     },
-    enabled: !!id,
+    enabled: !!id && canViewFullData,
   });
+
+  // Fetch limited order for manager
+  const { data: limitedOrderData, isLoading: isLoadingLimited } = useQuery({
+    queryKey: ['admin-order-limited', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_orders_for_manager');
+
+      if (error) throw error;
+      const order = (data as LimitedOrder[]).find(o => o.id === id);
+      if (!order) throw new Error('Order not found');
+      return order;
+    },
+    enabled: !!id && isManager,
+  });
+
+  const order = canViewFullData ? fullOrder : (limitedOrderData ? {
+    id: limitedOrderData.id,
+    status: limitedOrderData.status as OrderStatus,
+    total_amount: limitedOrderData.total_amount,
+    created_at: limitedOrderData.created_at,
+    updated_at: limitedOrderData.updated_at,
+    customer_name: '***',
+    phone: '***',
+    address: null,
+    products: [],
+  } as Order : null);
+
+  const isLoading = canViewFullData ? isLoadingFull : isLoadingLimited;
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: OrderStatus) => {
@@ -86,8 +129,10 @@ export default function AdminOrderDetail() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-order', id] });
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-order-full', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-order-limited', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-full'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-limited'] });
       toast({
         title: 'Muvaffaqiyatli',
         description: 'Buyurtma statusi yangilandi',
@@ -157,79 +202,125 @@ export default function AdminOrderDetail() {
           </Badge>
         </div>
 
+        {isManager && (
+          <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
+            <Shield className="h-5 w-5 text-yellow-600" />
+            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+              Menejer sifatida siz faqat buyurtma ID, status va summani ko'rishingiz mumkin. 
+              Mijoz ma'lumotlari va mahsulotlar ro'yxati himoyalangan.
+            </p>
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Customer Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Mijoz ma'lumotlari</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Ism</p>
-                  <p className="font-medium">{order.customer_name}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  <Phone className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Telefon</p>
-                  <p className="font-medium">{order.phone}</p>
-                </div>
-              </div>
-              {order.address && (
+          {/* Customer Info - Only for admin/superadmin */}
+          {canViewFullData ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Mijoz ma'lumotlari</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
+                    <User className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Manzil</p>
-                    <p className="font-medium">{order.address}</p>
+                    <p className="text-sm text-muted-foreground">Ism</p>
+                    <p className="font-medium">{order.customer_name}</p>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Telefon</p>
+                    <p className="font-medium">{order.phone}</p>
+                  </div>
+                </div>
+                {order.address && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <MapPin className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Manzil</p>
+                      <p className="font-medium">{order.address}</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Mijoz ma'lumotlari
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <Lock className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Mijoz ma'lumotlari faqat admin va superadmin uchun ko'rinadi
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Status Update */}
+          {/* Status Update - Only for admin/superadmin */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Statusni o'zgartirish</CardTitle>
+              <CardTitle className="text-lg">
+                {canUpdateStatus ? "Statusni o'zgartirish" : "Buyurtma statusi"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Select
-                value={currentStatus}
-                onValueChange={(value) => setSelectedStatus(value as OrderStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Kutilmoqda</SelectItem>
-                  <SelectItem value="processing">Jarayonda</SelectItem>
-                  <SelectItem value="delivered">Yetkazildi</SelectItem>
-                  <SelectItem value="cancelled">Bekor qilindi</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                className="w-full"
-                onClick={handleSaveStatus}
-                disabled={!selectedStatus || selectedStatus === order.status || updateStatusMutation.isPending}
-              >
-                {updateStatusMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saqlanmoqda...
-                  </>
-                ) : (
-                  'Saqlash'
-                )}
-              </Button>
+              {canUpdateStatus ? (
+                <>
+                  <Select
+                    value={currentStatus}
+                    onValueChange={(value) => setSelectedStatus(value as OrderStatus)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Kutilmoqda</SelectItem>
+                      <SelectItem value="processing">Jarayonda</SelectItem>
+                      <SelectItem value="delivered">Yetkazildi</SelectItem>
+                      <SelectItem value="cancelled">Bekor qilindi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    className="w-full"
+                    onClick={handleSaveStatus}
+                    disabled={!selectedStatus || selectedStatus === order.status || updateStatusMutation.isPending}
+                  >
+                    {updateStatusMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saqlanmoqda...
+                      </>
+                    ) : (
+                      'Saqlash'
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <div className="text-center">
+                  <Badge variant="outline" className={`${statusColors[order.status]} text-base px-4 py-2`}>
+                    {statusLabels[order.status]}
+                  </Badge>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Statusni o'zgartirish faqat admin va superadmin uchun
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -242,59 +333,82 @@ export default function AdminOrderDetail() {
               <div className="text-3xl font-bold text-primary">
                 {order.total_amount.toLocaleString()} so'm
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {products.length} ta mahsulot
-              </p>
+              {canViewFullData && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {products.length} ta mahsulot
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Package className="h-5 w-5" />
-              Mahsulotlar
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {products.length > 0 ? (
-                products.map((product: OrderProduct, index: number) => (
-                  <div
-                    key={product.id || index}
-                    className="flex items-center justify-between rounded-lg border border-border p-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      {product.image_url && (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="h-16 w-16 rounded-lg object-cover"
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {product.price.toLocaleString()} so'm × {product.quantity}
+        {/* Products - Only for admin/superadmin */}
+        {canViewFullData ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Package className="h-5 w-5" />
+                Mahsulotlar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {products.length > 0 ? (
+                  products.map((product: OrderProduct, index: number) => (
+                    <div
+                      key={product.id || index}
+                      className="flex items-center justify-between rounded-lg border border-border p-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        {product.image_url && (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="h-16 w-16 rounded-lg object-cover"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {product.price.toLocaleString()} so'm × {product.quantity}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">
+                          {(product.price * product.quantity).toLocaleString()} so'm
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">
-                        {(product.price * product.quantity).toLocaleString()} so'm
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-4">
-                  Mahsulotlar ma'lumoti mavjud emas
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">
+                    Mahsulotlar ma'lumoti mavjud emas
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Lock className="h-5 w-5" />
+                Mahsulotlar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                  <Lock className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Mahsulotlar ro'yxati faqat admin va superadmin uchun ko'rinadi
                 </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
