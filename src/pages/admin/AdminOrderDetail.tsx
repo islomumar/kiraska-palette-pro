@@ -64,14 +64,14 @@ export default function AdminOrderDetail() {
     queryKey: ['admin-order', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('orders')
+        .from('orders' as any)
         .select('*')
         .eq('id', id)
         .maybeSingle();
 
       if (error) throw error;
       if (!data) throw new Error('Order not found');
-      return data as Order;
+      return data as unknown as Order;
     },
     enabled: !!id,
   });
@@ -79,8 +79,8 @@ export default function AdminOrderDetail() {
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: OrderStatus) => {
       const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
+        .from('orders' as any)
+        .update({ status: newStatus } as any)
         .eq('id', id);
 
       if (error) throw error;

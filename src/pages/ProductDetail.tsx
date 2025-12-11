@@ -3,10 +3,30 @@ import { Layout } from "@/components/layout/Layout";
 import { products, formatPrice } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Star, Check, Truck, Shield, Phone } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find((p) => p.id === id);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      brand: product.brand,
+      volume: product.volume,
+    });
+    toast({
+      title: "Savatga qo'shildi",
+      description: `${product.name} savatga qo'shildi`,
+    });
+  };
 
   if (!product) {
     return (
@@ -114,7 +134,7 @@ const ProductDetail = () => {
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button variant="accent" size="xl" className="flex-1 rounded-full">
+                <Button variant="accent" size="xl" className="flex-1 rounded-full" onClick={handleAddToCart}>
                   <ShoppingCart className="h-5 w-5 mr-2" />
                   Savatga qo'shish
                 </Button>
