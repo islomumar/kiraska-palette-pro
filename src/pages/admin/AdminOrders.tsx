@@ -21,20 +21,29 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Search, Loader2 } from 'lucide-react';
+import { Eye, Search, Loader2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 
 type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
 
 interface Order {
   id: string;
-  customer_name: string;
-  phone: string;
-  address: string | null;
-  products: any;
+  customer_name?: string;
+  phone?: string;
+  address?: string | null;
+  products?: any;
   total_amount: number;
   status: OrderStatus;
   created_at: string;
+}
+
+interface LimitedOrder {
+  id: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
 }
 
 const statusLabels: Record<OrderStatus, string> = {
@@ -54,9 +63,14 @@ const statusColors: Record<OrderStatus, string> = {
 export default function AdminOrders() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const { userRole } = useAuth();
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ['admin-orders'],
+  const isManager = userRole === 'manager';
+  const canViewFullData = userRole === 'admin' || userRole === 'superadmin';
+
+  // Fetch full orders for admin/superadmin
+  const { data: fullOrders, isLoading: isLoadingFull } = useQuery({
+    queryKey: ['admin-orders-full'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders' as any)
@@ -66,13 +80,42 @@ export default function AdminOrders() {
       if (error) throw error;
       return data as unknown as Order[];
     },
+    enabled: canViewFullData,
   });
 
+  // Fetch limited orders for manager
+  const { data: limitedOrders, isLoading: isLoadingLimited } = useQuery({
+    queryKey: ['admin-orders-limited'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_orders_for_manager');
+
+      if (error) throw error;
+      return (data as LimitedOrder[]).map(order => ({
+        id: order.id,
+        status: order.status as OrderStatus,
+        total_amount: order.total_amount,
+        created_at: order.created_at,
+      })) as Order[];
+    },
+    enabled: isManager,
+  });
+
+  const orders = canViewFullData ? fullOrders : limitedOrders;
+  const isLoading = canViewFullData ? isLoadingFull : isLoadingLimited;
+
   const filteredOrders = orders?.filter((order) => {
-    const matchesSearch =
-      order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.phone.includes(searchQuery) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase());
+    let matchesSearch = true;
+    
+    if (searchQuery) {
+      if (canViewFullData && order.customer_name && order.phone) {
+        matchesSearch =
+          order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.phone.includes(searchQuery) ||
+          order.id.toLowerCase().includes(searchQuery.toLowerCase());
+      } else {
+        matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+    }
 
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
@@ -84,15 +127,31 @@ export default function AdminOrders() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Buyurtmalar</h1>
-          <p className="text-muted-foreground">Barcha buyurtmalarni boshqaring</p>
+          <p className="text-muted-foreground">
+            {isManager 
+              ? 'Buyurtmalar ro\'yxati (cheklangan ma\'lumot)' 
+              : 'Barcha buyurtmalarni boshqaring'}
+          </p>
         </div>
+
+        {isManager && (
+          <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
+            <Lock className="h-5 w-5 text-yellow-600" />
+            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+              Menejer sifatida siz faqat buyurtma ID, status va summani ko'rishingiz mumkin. 
+              Mijoz ma'lumotlari himoyalangan.
+            </p>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="ID, ism yoki telefon bo'yicha qidirish..."
+              placeholder={canViewFullData 
+                ? "ID, ism yoki telefon bo'yicha qidirish..." 
+                : "ID bo'yicha qidirish..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -123,8 +182,8 @@ export default function AdminOrders() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Mijoz</TableHead>
-                  <TableHead>Telefon</TableHead>
+                  {canViewFullData && <TableHead>Mijoz</TableHead>}
+                  {canViewFullData && <TableHead>Telefon</TableHead>}
                   <TableHead>Summa</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Sana</TableHead>
@@ -137,8 +196,12 @@ export default function AdminOrders() {
                     <TableCell className="font-mono text-xs">
                       {order.id.slice(0, 8)}...
                     </TableCell>
-                    <TableCell className="font-medium">{order.customer_name}</TableCell>
-                    <TableCell>{order.phone}</TableCell>
+                    {canViewFullData && (
+                      <TableCell className="font-medium">{order.customer_name}</TableCell>
+                    )}
+                    {canViewFullData && (
+                      <TableCell>{order.phone}</TableCell>
+                    )}
                     <TableCell>{order.total_amount.toLocaleString()} so'm</TableCell>
                     <TableCell>
                       <Badge
