@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PhoneInput, isValidPhone } from "@/components/ui/phone-input";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Mail, MapPin, Clock, Send, Instagram, MessageCircle } from "lucide-react";
 
@@ -37,20 +38,27 @@ const Contact = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
+    phone: "+998",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError("");
     
-    if (!formData.name.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim()) {
       toast({
         title: "Xatolik",
-        description: "Iltimos, barcha maydonlarni to'ldiring",
+        description: "Iltimos, ismingizni kiriting",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!isValidPhone(formData.phone)) {
+      setPhoneError("Telefon raqami noto'g'ri. Masalan: +998 90 123 45 67");
       return;
     }
 
@@ -64,7 +72,7 @@ const Contact = () => {
       description: "Tez orada siz bilan bog'lanamiz.",
     });
     
-    setFormData({ name: "", phone: "", message: "" });
+    setFormData({ name: "", phone: "+998", message: "" });
     setIsSubmitting(false);
   };
 
@@ -108,14 +116,15 @@ const Contact = () => {
                     <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                       Telefon raqam *
                     </label>
-                    <Input
+                    <PhoneInput
                       id="phone"
-                      type="tel"
-                      placeholder="+998 90 123 45 67"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(value) => {
+                        setFormData({ ...formData, phone: value });
+                        setPhoneError("");
+                      }}
+                      error={phoneError}
                       className="h-12"
-                      maxLength={20}
                     />
                   </div>
                   <div>
