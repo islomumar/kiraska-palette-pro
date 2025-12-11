@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Upload, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -39,6 +39,8 @@ const productSchema = z.object({
   short_description: z.string().nullable(),
   full_description: z.string().nullable(),
   category_id: z.string().nullable(),
+  stock_quantity: z.number().min(0, 'Zaxira 0 dan kam bo\'lmasligi kerak'),
+  low_stock_threshold: z.number().min(0, 'Chegara 0 dan kam bo\'lmasligi kerak'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -50,11 +52,14 @@ export default function AdminProductForm() {
   const isEditing = !!id;
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -71,6 +76,8 @@ export default function AdminProductForm() {
     short_description: '',
     full_description: '',
     category_id: null,
+    stock_quantity: 0,
+    low_stock_threshold: 5,
   });
 
   useEffect(() => {
@@ -118,6 +125,8 @@ export default function AdminProductForm() {
             short_description: data.short_description || '',
             full_description: data.full_description || '',
             category_id: data.category_id,
+            stock_quantity: data.stock_quantity ?? 0,
+            low_stock_threshold: data.low_stock_threshold ?? 5,
           });
         }
         setIsLoading(false);
@@ -142,6 +151,73 @@ export default function AdminProductForm() {
       name: value,
       slug: generateSlug(value),
     }));
+  };
+
+  const handleStockQuantityChange = (value: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      stock_quantity: value,
+      in_stock: value > 0,
+    }));
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Xatolik',
+        description: 'Faqat rasm fayllarini yuklash mumkin',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Xatolik',
+        description: 'Fayl hajmi 5MB dan oshmasligi kerak',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+      
+      toast({
+        title: 'Muvaffaqiyat',
+        description: 'Rasm muvaffaqiyatli yuklandi',
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Xatolik',
+        description: 'Rasmni yuklashda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,6 +268,8 @@ export default function AdminProductForm() {
         short_description: formData.short_description || null,
         full_description: formData.full_description || null,
         category_id: formData.category_id,
+        stock_quantity: formData.stock_quantity,
+        low_stock_threshold: formData.low_stock_threshold,
       }]));
     }
 
@@ -308,10 +386,10 @@ export default function AdminProductForm() {
               </CardContent>
             </Card>
 
-            {/* Pricing & Stock */}
+            {/* Pricing */}
             <Card>
               <CardHeader>
-                <CardTitle>Narx va mavjudlik</CardTitle>
+                <CardTitle>Narx</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -377,38 +455,83 @@ export default function AdminProductForm() {
                     }
                   />
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="flex flex-col gap-3 pt-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="in_stock"
-                      checked={formData.in_stock}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, in_stock: !!checked }))
-                      }
-                    />
+            {/* Stock Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Zaxira boshqaruvi</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stock_quantity">Zaxira miqdori *</Label>
+                  <Input
+                    id="stock_quantity"
+                    type="number"
+                    value={formData.stock_quantity}
+                    onChange={(e) => handleStockQuantityChange(Number(e.target.value))}
+                  />
+                  {errors.stock_quantity && <p className="text-sm text-destructive">{errors.stock_quantity}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="low_stock_threshold">Kam zaxira chegarasi</Label>
+                  <Input
+                    id="low_stock_threshold"
+                    type="number"
+                    value={formData.low_stock_threshold}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, low_stock_threshold: Number(e.target.value) }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Zaxira bu miqdordan kam bo'lganda ogohlantirish ko'rsatiladi
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div>
                     <Label htmlFor="in_stock">Mavjud (In Stock)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.in_stock ? 'Mahsulot sotuvda' : 'Mahsulot mavjud emas'}
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_featured"
-                      checked={formData.is_featured}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, is_featured: !!checked }))
-                      }
-                    />
+                  <Switch
+                    id="in_stock"
+                    checked={formData.in_stock}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, in_stock: checked }))
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div>
                     <Label htmlFor="is_featured">Featured</Label>
+                    <p className="text-xs text-muted-foreground">Bosh sahifada ko'rsatiladi</p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_bestseller"
-                      checked={formData.is_bestseller}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, is_bestseller: !!checked }))
-                      }
-                    />
+                  <Switch
+                    id="is_featured"
+                    checked={formData.is_featured}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_featured: checked }))
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div>
                     <Label htmlFor="is_bestseller">Bestseller</Label>
+                    <p className="text-xs text-muted-foreground">Eng ko'p sotilgan deb belgilanadi</p>
                   </div>
+                  <Switch
+                    id="is_bestseller"
+                    checked={formData.is_bestseller}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_bestseller: checked }))
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -419,18 +542,72 @@ export default function AdminProductForm() {
                 <CardTitle>Rasm</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="image_url">Rasm URL</Label>
-                  <Input
-                    id="image_url"
-                    value={formData.image_url || ''}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, image_url: e.target.value }))
-                    }
-                    placeholder="https://example.com/image.jpg"
-                  />
+                {/* Image input mode toggle */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={imageInputMode === 'upload' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setImageInputMode('upload')}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Yuklash
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={imageInputMode === 'url' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setImageInputMode('url')}
+                  >
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    URL
+                  </Button>
                 </div>
-                {formData.image_url && (
+
+                {imageInputMode === 'upload' ? (
+                  <div className="space-y-4">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Yuklanmoqda...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Rasm tanlash
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="image_url">Rasm URL</Label>
+                    <Input
+                      id="image_url"
+                      value={formData.image_url || ''}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, image_url: e.target.value }))
+                      }
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                )}
+
+                {formData.image_url ? (
                   <div className="overflow-hidden rounded-lg border border-border">
                     <img
                       src={formData.image_url}
@@ -441,16 +618,23 @@ export default function AdminProductForm() {
                       }}
                     />
                   </div>
+                ) : (
+                  <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/50">
+                    <div className="text-center">
+                      <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <p className="mt-2 text-sm text-muted-foreground">Rasm tanlanmagan</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Descriptions */}
-            <Card>
+            <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>Tavsif</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="short_description">Qisqa tavsif</Label>
                   <Textarea
@@ -459,7 +643,7 @@ export default function AdminProductForm() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, short_description: e.target.value }))
                     }
-                    rows={3}
+                    rows={4}
                   />
                 </div>
 
@@ -471,7 +655,7 @@ export default function AdminProductForm() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, full_description: e.target.value }))
                     }
-                    rows={5}
+                    rows={4}
                   />
                 </div>
               </CardContent>

@@ -6,6 +6,7 @@ import {
   Package, 
   FolderTree, 
   ShoppingCart,
+  Users,
   LogOut,
   ChevronRight,
   Loader2
@@ -17,17 +18,27 @@ interface AdminLayoutProps {
   children: ReactNode;
 }
 
-const sidebarLinks = [
-  { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'Buyurtmalar', path: '/admin/orders', icon: ShoppingCart },
-  { name: 'Mahsulotlar', path: '/admin/products', icon: Package },
-  { name: 'Kategoriyalar', path: '/admin/categories', icon: FolderTree },
-];
-
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const { user, isAdmin, isLoading, signOut } = useAuth();
+  const { user, isAdmin, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Define sidebar links based on role
+  const getSidebarLinks = () => {
+    const allLinks = [
+      { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['superadmin', 'admin', 'manager'] },
+      { name: 'Buyurtmalar', path: '/admin/orders', icon: ShoppingCart, roles: ['superadmin', 'admin', 'manager'] },
+      { name: 'Mahsulotlar', path: '/admin/products', icon: Package, roles: ['superadmin', 'admin'] },
+      { name: 'Kategoriyalar', path: '/admin/categories', icon: FolderTree, roles: ['superadmin', 'admin'] },
+      { name: 'Foydalanuvchilar', path: '/admin/users', icon: Users, roles: ['superadmin'] },
+    ];
+
+    if (!userRole) return [];
+    
+    return allLinks.filter(link => link.roles.includes(userRole));
+  };
+
+  const sidebarLinks = getSidebarLinks();
 
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
@@ -51,6 +62,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   if (!user || !isAdmin) {
     return null;
   }
+
+  const roleLabels: Record<string, string> = {
+    superadmin: 'Super Admin',
+    admin: 'Admin',
+    manager: 'Menejer',
+  };
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -90,9 +107,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Footer */}
           <div className="border-t border-border p-4">
-            <div className="mb-3 px-3 text-xs text-muted-foreground">
+            <div className="mb-1 px-3 text-xs text-muted-foreground">
               {user.email}
             </div>
+            {userRole && (
+              <div className="mb-3 px-3">
+                <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  {roleLabels[userRole] || userRole}
+                </span>
+              </div>
+            )}
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
