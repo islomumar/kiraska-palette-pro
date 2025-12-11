@@ -4,6 +4,7 @@ import { Menu, X, ShoppingCart, Phone, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/contexts/CartContext";
 
 const navLinks = [
   { name: "Bosh sahifa", path: "/" },
@@ -18,6 +19,7 @@ export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const { totalItems } = useCart();
 
   const handleAdminClick = () => {
     if (user && isAdmin) {
@@ -65,9 +67,16 @@ export function Navbar() {
             <Phone className="h-4 w-4" />
             <span>+998 90 123 45 67</span>
           </a>
-          <Button variant="accent" size="sm" className="rounded-full">
-            <ShoppingCart className="h-4 w-4" />
-            <span>Savat</span>
+          <Button variant="accent" size="sm" className="rounded-full relative" asChild>
+            <Link to="/cart">
+              <ShoppingCart className="h-4 w-4" />
+              <span>Savat</span>
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
           </Button>
           <button
             onClick={handleAdminClick}
@@ -111,9 +120,16 @@ export function Navbar() {
                 <Phone className="h-4 w-4" />
                 +998 90 123 45 67
               </a>
-              <Button variant="accent" className="w-full rounded-full">
-                <ShoppingCart className="h-4 w-4" />
-                Savat
+              <Button variant="accent" className="w-full rounded-full relative" asChild>
+                <Link to="/cart" onClick={() => setIsOpen(false)}>
+                  <ShoppingCart className="h-4 w-4" />
+                  Savat
+                  {totalItems > 0 && (
+                    <span className="absolute -top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
               </Button>
             </div>
           </nav>
