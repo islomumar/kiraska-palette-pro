@@ -95,11 +95,13 @@ export type Database = {
           in_stock: boolean | null
           is_bestseller: boolean | null
           is_featured: boolean | null
+          low_stock_threshold: number | null
           name: string
           old_price: number | null
           price: number
           short_description: string | null
           slug: string
+          stock_quantity: number | null
           updated_at: string | null
           volume: string | null
         }
@@ -114,11 +116,13 @@ export type Database = {
           in_stock?: boolean | null
           is_bestseller?: boolean | null
           is_featured?: boolean | null
+          low_stock_threshold?: number | null
           name: string
           old_price?: number | null
           price?: number
           short_description?: string | null
           slug: string
+          stock_quantity?: number | null
           updated_at?: string | null
           volume?: string | null
         }
@@ -133,11 +137,13 @@ export type Database = {
           in_stock?: boolean | null
           is_bestseller?: boolean | null
           is_featured?: boolean | null
+          low_stock_threshold?: number | null
           name?: string
           old_price?: number | null
           price?: number
           short_description?: string | null
           slug?: string
+          stock_quantity?: number | null
           updated_at?: string | null
           volume?: string | null
         }
@@ -186,7 +192,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "superadmin" | "manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -314,7 +320,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "superadmin", "manager"],
     },
   },
 } as const
