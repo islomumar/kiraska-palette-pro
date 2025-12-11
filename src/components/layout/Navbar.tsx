@@ -4,18 +4,24 @@ import { Menu, X, ShoppingCart, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/contexts/CartContext";
-const navLinks = [
-  { name: "Bosh sahifa", path: "/" },
-  { name: "Katalog", path: "/catalog" },
-  { name: "Mahsulotlar", path: "/products" },
-  { name: "Biz haqimizda", path: "/about" },
-  { name: "Aloqa", path: "/contact" },
-];
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { totalItems } = useCart();
+  const { getText } = useSiteContent();
+
+  const navLinks = [
+    { name: getText('nav_home', 'Bosh sahifa'), path: "/" },
+    { name: getText('nav_catalog', 'Katalog'), path: "/catalog" },
+    { name: getText('nav_products', 'Mahsulotlar'), path: "/products" },
+    { name: getText('nav_about', 'Biz haqimizda'), path: "/about" },
+    { name: getText('nav_contact', 'Aloqa'), path: "/contact" },
+  ];
+
+  const phoneNumber = getText('header_phone', '+998 90 123 45 67');
+  const phoneLink = `tel:${phoneNumber.replace(/\s/g, '')}`;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 shadow-sm">
@@ -48,20 +54,20 @@ export function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-4 lg:flex">
-          <a href="tel:+998901234567" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          <a href={phoneLink} className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             <Phone className="h-4 w-4" />
-            <span>+998 90 123 45 67</span>
+            <span>{phoneNumber}</span>
           </a>
-          <Button variant="outline" size="sm" className="rounded-full" asChild>
-            <a href="tel:+998901234567">
+          <Button variant="outline" size="sm" className="rounded-full border-border text-foreground hover:bg-secondary" asChild>
+            <a href={phoneLink}>
               <Phone className="h-4 w-4 mr-2" />
-              Qo'ng'iroq
+              {getText('header_call_btn', "Qo'ng'iroq")}
             </a>
           </Button>
           <Button variant="accent" size="sm" className="rounded-full relative" asChild>
             <Link to="/cart">
               <ShoppingCart className="h-4 w-4" />
-              <span>Savat</span>
+              <span>{getText('header_cart_btn', 'Savat')}</span>
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
                   {totalItems}
@@ -100,14 +106,14 @@ export function Navbar() {
               </Link>
             ))}
             <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
-              <a href="tel:+998901234567" className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <a href={phoneLink} className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Phone className="h-4 w-4" />
-                +998 90 123 45 67
+                {phoneNumber}
               </a>
               <Button variant="accent" className="w-full rounded-full relative" asChild>
                 <Link to="/cart" onClick={() => setIsOpen(false)}>
                   <ShoppingCart className="h-4 w-4" />
-                  Savat
+                  {getText('header_cart_btn', 'Savat')}
                   {totalItems > 0 && (
                     <span className="absolute -top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
                       {totalItems}
