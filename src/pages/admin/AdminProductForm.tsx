@@ -18,6 +18,7 @@ import { ArrowLeft, Loader2, Save, Upload, Image as ImageIcon, Link as LinkIcon 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 
 interface Category {
   id: string;
@@ -394,12 +395,11 @@ export default function AdminProductForm() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">Narxi (so'm) *</Label>
-                  <Input
+                  <FormattedNumberInput
                     id="price"
-                    type="number"
                     value={formData.price}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, price: value }))
                     }
                   />
                   {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
@@ -407,14 +407,13 @@ export default function AdminProductForm() {
 
                 <div className="space-y-2">
                   <Label htmlFor="old_price">Eski narxi (so'm)</Label>
-                  <Input
+                  <FormattedNumberInput
                     id="old_price"
-                    type="number"
-                    value={formData.old_price || ''}
-                    onChange={(e) =>
+                    value={formData.old_price || 0}
+                    onChange={(value) =>
                       setFormData((prev) => ({
                         ...prev,
-                        old_price: e.target.value ? Number(e.target.value) : null,
+                        old_price: value > 0 ? value : null,
                       }))
                     }
                   />
@@ -466,23 +465,21 @@ export default function AdminProductForm() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="stock_quantity">Zaxira miqdori *</Label>
-                  <Input
+                  <FormattedNumberInput
                     id="stock_quantity"
-                    type="number"
                     value={formData.stock_quantity}
-                    onChange={(e) => handleStockQuantityChange(Number(e.target.value))}
+                    onChange={(value) => handleStockQuantityChange(value)}
                   />
                   {errors.stock_quantity && <p className="text-sm text-destructive">{errors.stock_quantity}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="low_stock_threshold">Kam zaxira chegarasi</Label>
-                  <Input
+                  <FormattedNumberInput
                     id="low_stock_threshold"
-                    type="number"
                     value={formData.low_stock_threshold}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, low_stock_threshold: Number(e.target.value) }))
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, low_stock_threshold: value }))
                     }
                   />
                   <p className="text-xs text-muted-foreground">

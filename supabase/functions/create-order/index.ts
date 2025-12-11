@@ -75,6 +75,58 @@ ${productsList}
   }
 }
 
+async function updateProductStock(supabase: any, products: OrderProduct[]) {
+  for (const product of products) {
+    try {
+      // Get current stock
+      const { data: currentProduct, error: fetchError } = await supabase
+        .from('products')
+        .select('stock_quantity')
+        .eq('id', product.id)
+        .single();
+
+      if (fetchError) {
+        console.error(`Error fetching product ${product.id}:`, fetchError);
+        continue;
+      }
+
+      const newQuantity = Math.max(0, (currentProduct.stock_quantity || 0) - product.quantity);
+
+      // Update product stock
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          stock_quantity: newQuantity,
+          in_stock: newQuantity > 0,
+        })
+        .eq('id', product.id);
+
+      if (updateError) {
+        console.error(`Error updating stock for product ${product.id}:`, updateError);
+        continue;
+      }
+
+      // Record stock history
+      const { error: historyError } = await supabase
+        .from('stock_history')
+        .insert({
+          product_id: product.id,
+          change: -product.quantity,
+          type: 'sale',
+          notes: `Buyurtma orqali sotildi`,
+        });
+
+      if (historyError) {
+        console.error(`Error recording stock history for product ${product.id}:`, historyError);
+      } else {
+        console.log(`Stock updated for product ${product.id}: -${product.quantity}`);
+      }
+    } catch (error) {
+      console.error(`Error processing stock for product ${product.id}:`, error);
+    }
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -127,6 +179,9 @@ serve(async (req) => {
     }
 
     console.log('Order created:', order.id);
+
+    // Update product stock quantities
+    await updateProductStock(supabase, body.products);
 
     // Send Telegram notification
     await sendTelegramNotification(order, body.products);
