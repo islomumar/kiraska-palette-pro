@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLanguage, Language } from '@/contexts/LanguageContext';
 
 interface SiteContent {
   [key: string]: string;
@@ -11,30 +12,51 @@ interface SiteContentContextType {
   isLoading: boolean;
   getText: (key: string, fallback?: string) => string;
   refetch: () => void;
+  currentLanguage: Language;
 }
 
 const SiteContentContext = createContext<SiteContentContextType | undefined>(undefined);
 
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { currentLanguage } = useLanguage();
 
   const { data: content = {}, isLoading, refetch } = useQuery({
-    queryKey: ['site-content'],
+    queryKey: ['site-content', currentLanguage],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try to get content in the current language
+      const { data: langData, error: langError } = await supabase
         .from('site_content')
-        .select('key, value');
+        .select('key, value')
+        .eq('lang', currentLanguage);
 
-      if (error) throw error;
+      if (langError) throw langError;
 
+      // Also get fallback content in Uzbek (default language)
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('site_content')
+        .select('key, value')
+        .eq('lang', 'uz');
+
+      if (fallbackError) throw fallbackError;
+
+      // Build content map with fallback to Uzbek
       const contentMap: SiteContent = {};
-      data?.forEach((item) => {
+      
+      // First add all Uzbek content as fallback
+      fallbackData?.forEach((item) => {
         contentMap[item.key] = item.value;
       });
+      
+      // Override with current language content where available
+      langData?.forEach((item) => {
+        contentMap[item.key] = item.value;
+      });
+      
       return contentMap;
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 
   // Subscribe to realtime changes
@@ -64,7 +86,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SiteContentContext.Provider value={{ content, isLoading, getText, refetch }}>
+    <SiteContentContext.Provider value={{ content, isLoading, getText, refetch, currentLanguage }}>
       {children}
     </SiteContentContext.Provider>
   );

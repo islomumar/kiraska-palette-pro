@@ -163,6 +163,7 @@ export type Database = {
           description: string | null
           id: string
           key: string
+          lang: string
           updated_at: string
           value: string
         }
@@ -171,6 +172,7 @@ export type Database = {
           description?: string | null
           id?: string
           key: string
+          lang?: string
           updated_at?: string
           value?: string
         }
@@ -179,6 +181,7 @@ export type Database = {
           description?: string | null
           id?: string
           key?: string
+          lang?: string
           updated_at?: string
           value?: string
         }
@@ -343,6 +346,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_content_by_lang: {
+        Row: {
+          description: string | null
+          key: string | null
+          lang: string | null
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          description?: string | null
+          key?: string | null
+          lang?: string | null
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          description?: string | null
+          key?: string | null
+          lang?: string | null
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

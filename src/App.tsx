@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/contexts/CartContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SiteContentProvider } from "@/hooks/useSiteContent";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { AdminSiteContentLayout } from "@/components/admin/AdminSiteContentLayout";
@@ -44,8 +45,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <SiteContentProvider>
-            <EditModeProvider>
+          <LanguageProvider>
+            <SiteContentProvider>
+              <EditModeProvider>
               <CartProvider>
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -77,9 +79,10 @@ const App = () => (
                   <Route path="/admin/site-content/cart" element={<AdminSiteContentLayout><Cart /></AdminSiteContentLayout>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </CartProvider>
-            </EditModeProvider>
-          </SiteContentProvider>
+                </CartProvider>
+              </EditModeProvider>
+            </SiteContentProvider>
+          </LanguageProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
