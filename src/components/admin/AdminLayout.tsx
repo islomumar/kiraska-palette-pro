@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -79,11 +80,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">K</span>
+          <div className="flex h-16 items-center justify-between border-b border-border px-6">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <span className="text-sm font-bold text-primary-foreground">K</span>
+              </div>
+              <span className="font-bold text-foreground">Admin Panel</span>
             </div>
-            <span className="font-bold text-foreground">Admin Panel</span>
+            <LanguageSwitcher />
           </div>
 
           {/* Navigation */}

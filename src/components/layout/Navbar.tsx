@@ -7,6 +7,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +69,8 @@ export function Navbar() {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden items-center gap-3 lg:flex">
+          <LanguageSwitcher />
           <a href={phoneLink} className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             <Phone className="h-4 w-4" />
             <span>{renderText('header_phone', '+998 90 123 45 67')}</span>
@@ -119,10 +121,13 @@ export function Navbar() {
               </Link>
             ))}
             <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
-              <a href={phoneLink} className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Phone className="h-4 w-4" />
-                {phoneNumber}
-              </a>
+              <div className="flex items-center justify-between">
+                <a href={phoneLink} className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  {phoneNumber}
+                </a>
+                <LanguageSwitcher />
+              </div>
               <Button variant="accent" className="w-full rounded-full relative" asChild>
                 <Link to={`${linkPrefix}/cart`} onClick={() => setIsOpen(false)}>
                   <ShoppingCart className="h-4 w-4" />
