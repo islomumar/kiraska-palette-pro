@@ -1,28 +1,46 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { products, formatPrice, categories, mainCategories } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShoppingCart, Star, X } from "lucide-react";
-
-const brands = ["ColorMaster", "SprayMaster", "WoodCare", "MetalShield", "DecorPro", "PaintTools", "EmalPro"];
-const volumes = ["400ml", "1L", "3L", "5kg", "6 dona", "10L"];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProducts, formatPrice } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
+import { useSiteContent } from "@/hooks/useSiteContent";
+import { useEditMode } from "@/contexts/EditModeContext";
 
 const Catalog = () => {
   const [searchParams] = useSearchParams();
-  const initialCategory = searchParams.get("category");
+  const initialCategorySlug = searchParams.get("category");
+  const { getText } = useSiteContent();
+  const { isEditMode } = useEditMode();
+  const linkPrefix = isEditMode ? '/admin/site-content' : '';
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategory ? [initialCategory] : []);
+  const { data: products = [], isLoading: productsLoading } = useProducts();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+
+  // Find initial category ID from slug
+  const initialCategory = categories.find(c => c.slug === initialCategorySlug);
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategory ? [initialCategory.id] : []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedVolumes, setSelectedVolumes] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [showFilters, setShowFilters] = useState(false);
 
-  const toggleCategory = (slug: string) => {
+  // Get unique brands from products
+  const brands = useMemo(() => {
+    const brandSet = new Set<string>();
+    products.forEach(p => {
+      if (p.brand) brandSet.add(p.brand);
+    });
+    return Array.from(brandSet).sort();
+  }, [products]);
+
+  const toggleCategory = (id: string) => {
     setSelectedCategories((prev) =>
-      prev.includes(slug) ? prev.filter((c) => c !== slug) : [...prev, slug]
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
   };
 
@@ -32,28 +50,21 @@ const Catalog = () => {
     );
   };
 
-  const toggleVolume = (volume: string) => {
-    setSelectedVolumes((prev) =>
-      prev.includes(volume) ? prev.filter((v) => v !== volume) : [...prev, volume]
-    );
-  };
-
   const clearFilters = () => {
     setSelectedCategories([]);
     setSelectedBrands([]);
-    setSelectedVolumes([]);
     setPriceRange([0, 500000]);
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.categorySlug);
-    const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
-    const matchesVolume = selectedVolumes.length === 0 || selectedVolumes.includes(product.volume);
-    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-    return matchesCategory && matchesBrand && matchesVolume && matchesPrice;
+    const matchesCategory = selectedCategories.length === 0 || (product.category_id && selectedCategories.includes(product.category_id));
+    const matchesBrand = selectedBrands.length === 0 || (product.brand && selectedBrands.includes(product.brand));
+    const matchesPrice = (product.price || 0) >= priceRange[0] && (product.price || 0) <= priceRange[1];
+    return matchesCategory && matchesBrand && matchesPrice;
   });
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || selectedVolumes.length > 0 || priceRange[0] > 0 || priceRange[1] < 500000;
+  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || priceRange[0] > 0 || priceRange[1] < 500000;
+  const isLoading = productsLoading || categoriesLoading;
 
   return (
     <Layout>
@@ -61,10 +72,10 @@ const Catalog = () => {
       <section className="bg-primary py-12 md:py-16">
         <div className="container">
           <h1 className="text-3xl font-bold text-primary-foreground md:text-4xl text-center">
-            Katalog
+            {getText('nav_catalog', 'Katalog')}
           </h1>
           <p className="mt-3 text-primary-foreground/80 text-center max-w-xl mx-auto">
-            Bo'yoq, lak, emal, gruntovka va boshqa mahsulotlarni filtrlang
+            {getText('catalog_page_description', "Bo'yoq, lak, emal, gruntovka va boshqa mahsulotlarni filtrlang")}
           </p>
         </div>
       </section>
@@ -89,11 +100,11 @@ const Catalog = () => {
                 <div className="space-y-3">
                   <h3 className="font-medium text-foreground">Kategoriyalar</h3>
                   <div className="space-y-2">
-                    {mainCategories.map((cat) => (
-                      <label key={cat.slug} className="flex items-center gap-3 cursor-pointer">
+                    {categories.map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
                         <Checkbox
-                          checked={selectedCategories.includes(cat.slug)}
-                          onCheckedChange={() => toggleCategory(cat.slug)}
+                          checked={selectedCategories.includes(cat.id)}
+                          onCheckedChange={() => toggleCategory(cat.id)}
                         />
                         <span className="text-sm text-muted-foreground">{cat.name}</span>
                       </label>
@@ -102,36 +113,22 @@ const Catalog = () => {
                 </div>
 
                 {/* Brands */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-foreground">Brendlar</h3>
-                  <div className="space-y-2">
-                    {brands.map((brand) => (
-                      <label key={brand} className="flex items-center gap-3 cursor-pointer">
-                        <Checkbox
-                          checked={selectedBrands.includes(brand)}
-                          onCheckedChange={() => toggleBrand(brand)}
-                        />
-                        <span className="text-sm text-muted-foreground">{brand}</span>
-                      </label>
-                    ))}
+                {brands.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-foreground">Brendlar</h3>
+                    <div className="space-y-2">
+                      {brands.map((brand) => (
+                        <label key={brand} className="flex items-center gap-3 cursor-pointer">
+                          <Checkbox
+                            checked={selectedBrands.includes(brand)}
+                            onCheckedChange={() => toggleBrand(brand)}
+                          />
+                          <span className="text-sm text-muted-foreground">{brand}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-
-                {/* Volume */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-foreground">Hajmi</h3>
-                  <div className="space-y-2">
-                    {volumes.map((volume) => (
-                      <label key={volume} className="flex items-center gap-3 cursor-pointer">
-                        <Checkbox
-                          checked={selectedVolumes.includes(volume)}
-                          onCheckedChange={() => toggleVolume(volume)}
-                        />
-                        <span className="text-sm text-muted-foreground">{volume}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                )}
 
                 {/* Price Range */}
                 <div className="space-y-3">
@@ -155,7 +152,7 @@ const Catalog = () => {
             {/* Mobile Filter Button */}
             <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
               <Button onClick={() => setShowFilters(true)} className="shadow-lg rounded-full">
-                🎨 Filtrlar {hasActiveFilters && `(${selectedCategories.length + selectedBrands.length + selectedVolumes.length})`}
+                🎨 Filtrlar {hasActiveFilters && `(${selectedCategories.length + selectedBrands.length})`}
               </Button>
             </div>
 
@@ -168,68 +165,86 @@ const Catalog = () => {
               </div>
 
               {/* Products Grid */}
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredProducts.map((product, index) => (
-                  <div
-                    key={product.id}
-                    className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                  >
-                    {/* Badges */}
-                    <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
-                      {product.isBestseller && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                          <Star className="h-3 w-3" />
-                          Bestseller
-                        </span>
-                      )}
-                      {product.originalPrice && (
-                        <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                          -{Math.round((1 - product.price / product.originalPrice) * 100)}%
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Image */}
-                    <Link to={`/products/${product.id}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
-                      />
-                    </Link>
-
-                    {/* Content */}
-                    <div className="p-5">
-                      <p className="text-xs font-medium text-primary uppercase tracking-wide">
-                        {product.brand}
-                      </p>
-                      <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                        <Link to={`/products/${product.id}`}>{product.name}</Link>
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{product.volume}</p>
-
-                      <div className="mt-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-lg font-bold text-foreground">
-                            {formatPrice(product.price)}
-                          </p>
-                          {product.originalPrice && (
-                            <p className="text-sm text-muted-foreground line-through">
-                              {formatPrice(product.originalPrice)}
-                            </p>
-                          )}
-                        </div>
-                        <Button size="icon" variant="accent" className="rounded-full h-10 w-10">
-                          <ShoppingCart className="h-4 w-4" />
-                        </Button>
+              {isLoading ? (
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="rounded-3xl bg-card p-5">
+                      <Skeleton className="aspect-square w-full rounded-2xl" />
+                      <Skeleton className="mt-4 h-4 w-20" />
+                      <Skeleton className="mt-2 h-6 w-full" />
+                      <Skeleton className="mt-2 h-4 w-16" />
+                      <div className="mt-4 flex justify-between">
+                        <Skeleton className="h-6 w-24" />
+                        <Skeleton className="h-10 w-10 rounded-full" />
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  {filteredProducts.map((product, index) => (
+                    <div
+                      key={product.id}
+                      className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
+                      style={{ animationDelay: `${index * 0.05}s` }}
+                    >
+                      {/* Badges */}
+                      <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
+                        {product.is_bestseller && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                            <Star className="h-3 w-3" />
+                            Bestseller
+                          </span>
+                        )}
+                        {product.old_price && (
+                          <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
+                            -{Math.round((1 - (product.price || 0) / product.old_price) * 100)}%
+                          </span>
+                        )}
+                      </div>
 
-              {filteredProducts.length === 0 && (
+                      {/* Image */}
+                      <Link to={`${linkPrefix}/products/${product.slug}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
+                        <img
+                          src={product.image_url || '/placeholder.svg'}
+                          alt={product.name || ''}
+                          className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      </Link>
+
+                      {/* Content */}
+                      <div className="p-5">
+                        <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                          {product.brand}
+                        </p>
+                        <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                          <Link to={`${linkPrefix}/products/${product.slug}`}>{product.name}</Link>
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{product.volume}</p>
+
+                        <div className="mt-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-lg font-bold text-foreground">
+                              {formatPrice(product.price || 0)}
+                            </p>
+                            {product.old_price && (
+                              <p className="text-sm text-muted-foreground line-through">
+                                {formatPrice(product.old_price)}
+                              </p>
+                            )}
+                          </div>
+                          <Button size="icon" variant="accent" className="rounded-full h-10 w-10">
+                            <ShoppingCart className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!isLoading && filteredProducts.length === 0 && (
                 <div className="text-center py-16">
                   <p className="text-muted-foreground text-lg">Mahsulot topilmadi</p>
                   <Button variant="outline" className="mt-4 rounded-full" onClick={clearFilters}>
@@ -259,11 +274,11 @@ const Catalog = () => {
               <div className="space-y-3">
                 <h3 className="font-medium text-foreground">Kategoriyalar</h3>
                 <div className="space-y-2">
-                  {mainCategories.map((cat) => (
-                    <label key={cat.slug} className="flex items-center gap-3 cursor-pointer">
+                  {categories.map((cat) => (
+                    <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
                       <Checkbox
-                        checked={selectedCategories.includes(cat.slug)}
-                        onCheckedChange={() => toggleCategory(cat.slug)}
+                        checked={selectedCategories.includes(cat.id)}
+                        onCheckedChange={() => toggleCategory(cat.id)}
                       />
                       <span className="text-sm text-muted-foreground">{cat.name}</span>
                     </label>
@@ -272,20 +287,22 @@ const Catalog = () => {
               </div>
 
               {/* Brands */}
-              <div className="space-y-3">
-                <h3 className="font-medium text-foreground">Brendlar</h3>
-                <div className="space-y-2">
-                  {brands.map((brand) => (
-                    <label key={brand} className="flex items-center gap-3 cursor-pointer">
-                      <Checkbox
-                        checked={selectedBrands.includes(brand)}
-                        onCheckedChange={() => toggleBrand(brand)}
-                      />
-                      <span className="text-sm text-muted-foreground">{brand}</span>
-                    </label>
-                  ))}
+              {brands.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-medium text-foreground">Brendlar</h3>
+                  <div className="space-y-2">
+                    {brands.map((brand) => (
+                      <label key={brand} className="flex items-center gap-3 cursor-pointer">
+                        <Checkbox
+                          checked={selectedBrands.includes(brand)}
+                          onCheckedChange={() => toggleBrand(brand)}
+                        />
+                        <span className="text-sm text-muted-foreground">{brand}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Price Range */}
               <div className="space-y-3">

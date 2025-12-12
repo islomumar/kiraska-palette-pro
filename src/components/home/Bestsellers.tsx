@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
-import { formatPrice } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowRight, Star } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useBestsellers, formatPrice } from "@/hooks/useProducts";
 
 export function Bestsellers() {
   const { getText } = useSiteContent();
@@ -21,16 +19,7 @@ export function Bestsellers() {
     return getText(key, fallback);
   };
 
-  const { data: bestsellers = [], isLoading } = useQuery({
-    queryKey: ['bestsellers'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('products_public').select('*').eq('is_bestseller', true).limit(8);
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-  });
+  const { data: bestsellers = [], isLoading } = useBestsellers();
 
   return (
     <section className="py-16 md:py-24 bg-secondary/30">
