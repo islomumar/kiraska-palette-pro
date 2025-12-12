@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { formatPrice } from "@/data/products";
+import { formatPrice } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, ArrowLeft, Star, Check, Truck, Shield, Phone, Loader2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";

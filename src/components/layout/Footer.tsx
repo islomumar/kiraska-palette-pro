@@ -3,11 +3,13 @@ import { Phone, Mail, MapPin, Clock, Instagram, Send } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
+import { useCategories } from "@/hooks/useCategories";
 
 export function Footer() {
   const { getText } = useSiteContent();
   const { isEditMode } = useEditMode();
   const linkPrefix = isEditMode ? '/admin/site-content' : '';
+  const { data: categories = [] } = useCategories();
 
   const renderText = (key: string, fallback: string) => {
     if (isEditMode) {
@@ -15,14 +17,6 @@ export function Footer() {
     }
     return getText(key, fallback);
   };
-
-  const categories = [
-    { name: "Kiraska", path: "/catalog?category=kiraska" },
-    { name: "Lak", path: "/catalog?category=lak" },
-    { name: "Emal", path: "/catalog?category=emal" },
-    { name: "Gruntovka", path: "/catalog?category=gruntovka" },
-    { name: "Shpaklyovka", path: "/catalog?category=shpaklyovka" },
-  ];
 
   const quickLinks = [
     { name: getText('nav_home', 'Bosh sahifa'), path: "/" },
@@ -61,9 +55,9 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="text-base font-semibold text-foreground">{renderText('footer_categories_title', 'Kategoriyalar')}</h4>
             <ul className="space-y-2">
-              {categories.map((category) => (
-                <li key={category.name}>
-                  <Link to={`${linkPrefix}${category.path}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{category.name}</Link>
+              {categories.slice(0, 5).map((category) => (
+                <li key={category.id}>
+                  <Link to={`${linkPrefix}/catalog?category=${category.slug}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{category.name}</Link>
                 </li>
               ))}
             </ul>

@@ -1,21 +1,33 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { products, formatPrice, categories } from "@/data/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ShoppingCart, Search, Star } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProducts, formatPrice } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
+import { useSiteContent } from "@/hooks/useSiteContent";
+import { useEditMode } from "@/contexts/EditModeContext";
 
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { getText } = useSiteContent();
+  const { isEditMode } = useEditMode();
+  const linkPrefix = isEditMode ? '/admin/site-content' : '';
+  
+  const { data: products = [], isLoading: productsLoading } = useProducts();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || product.categorySlug === selectedCategory;
+    const matchesSearch = (product.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (product.brand?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const isLoading = productsLoading || categoriesLoading;
 
   return (
     <Layout>
@@ -23,10 +35,10 @@ const Products = () => {
       <section className="bg-primary py-12 md:py-16">
         <div className="container">
           <h1 className="text-3xl font-bold text-primary-foreground md:text-4xl text-center">
-            Barcha mahsulotlar
+            {getText('nav_products', 'Barcha mahsulotlar')}
           </h1>
           <p className="mt-3 text-primary-foreground/80 text-center max-w-xl mx-auto">
-            1000+ dan ortiq sifatli bo'yoq, lak, emal va boshqa mahsulotlarni tanlang
+            {getText('products_page_description', "1000+ dan ortiq sifatli bo'yoq, lak, emal va boshqa mahsulotlarni tanlang")}
           </p>
         </div>
       </section>
@@ -55,86 +67,101 @@ const Products = () => {
               </Button>
               {categories.map((cat) => (
                 <Button
-                  key={cat.slug}
-                  variant={selectedCategory === cat.slug ? "accent" : "outline"}
-                  onClick={() => setSelectedCategory(cat.slug)}
+                  key={cat.id}
+                  variant={selectedCategory === cat.id ? "accent" : "outline"}
+                  onClick={() => setSelectedCategory(cat.id)}
                   className="shrink-0 rounded-full"
                 >
-                  {cat.icon} {cat.name}
+                  {cat.name}
                 </Button>
               ))}
             </div>
           </div>
 
           {/* Products Grid */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredProducts.map((product, index) => (
-              <div
-                key={product.id}
-                className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                {/* Badges */}
-                <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
-                  {product.isBestseller && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      <Star className="h-3 w-3" />
-                      Bestseller
-                    </span>
-                  )}
-                  {product.isNew && (
-                    <span className="inline-flex items-center rounded-full bg-foreground px-3 py-1 text-xs font-semibold text-background">
-                      Yangi
-                    </span>
-                  )}
-                  {product.originalPrice && (
-                    <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                      -{Math.round((1 - product.price / product.originalPrice) * 100)}%
-                    </span>
-                  )}
-                </div>
-
-                {/* Image */}
-                <Link to={`/products/${product.id}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
-                  />
-                </Link>
-
-                {/* Content */}
-                <div className="p-5">
-                  <p className="text-xs font-medium text-primary uppercase tracking-wide">
-                    {product.brand}
-                  </p>
-                  <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                    <Link to={`/products/${product.id}`}>{product.name}</Link>
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{product.volume}</p>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-bold text-foreground">
-                        {formatPrice(product.price)}
-                      </p>
-                      {product.originalPrice && (
-                        <p className="text-sm text-muted-foreground line-through">
-                          {formatPrice(product.originalPrice)}
-                        </p>
-                      )}
-                    </div>
-                    <Button size="icon" variant="accent" className="rounded-full h-10 w-10">
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
+          {isLoading ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="rounded-3xl bg-card p-5">
+                  <Skeleton className="aspect-square w-full rounded-2xl" />
+                  <Skeleton className="mt-4 h-4 w-20" />
+                  <Skeleton className="mt-2 h-6 w-full" />
+                  <Skeleton className="mt-2 h-4 w-16" />
+                  <div className="mt-4 flex justify-between">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-10 w-10 rounded-full" />
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  {/* Badges */}
+                  <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
+                    {product.is_bestseller && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                        <Star className="h-3 w-3" />
+                        Bestseller
+                      </span>
+                    )}
+                    {product.old_price && (
+                      <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
+                        -{Math.round((1 - (product.price || 0) / product.old_price) * 100)}%
+                      </span>
+                    )}
+                  </div>
 
-          {filteredProducts.length === 0 && (
+                  {/* Image */}
+                  <Link to={`${linkPrefix}/products/${product.slug}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
+                    <img
+                      src={product.image_url || '/placeholder.svg'}
+                      alt={product.name || ''}
+                      className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  </Link>
+
+                  {/* Content */}
+                  <div className="p-5">
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                      {product.brand}
+                    </p>
+                    <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                      <Link to={`${linkPrefix}/products/${product.slug}`}>{product.name}</Link>
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{product.volume}</p>
+                    {product.short_description && (
+                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{product.short_description}</p>
+                    )}
+
+                    <div className="mt-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-bold text-foreground">
+                          {formatPrice(product.price || 0)}
+                        </p>
+                        {product.old_price && (
+                          <p className="text-sm text-muted-foreground line-through">
+                            {formatPrice(product.old_price)}
+                          </p>
+                        )}
+                      </div>
+                      <Button size="icon" variant="accent" className="rounded-full h-10 w-10">
+                        <ShoppingCart className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && filteredProducts.length === 0 && (
             <div className="text-center py-16">
               <p className="text-muted-foreground text-lg">Mahsulot topilmadi</p>
               <Button variant="outline" className="mt-4 rounded-full" onClick={() => { setSearchQuery(""); setSelectedCategory(null); }}>
