@@ -18,30 +18,36 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          description_ml: Json | null
           id: string
           image_url: string | null
           is_active: boolean
           name: string
+          name_ml: Json | null
           slug: string
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
+          description_ml?: Json | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           name: string
+          name_ml?: Json | null
           slug: string
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
+          description_ml?: Json | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           name?: string
+          name_ml?: Json | null
           slug?: string
           updated_at?: string | null
         }
@@ -94,6 +100,7 @@ export type Database = {
           colors: Json | null
           created_at: string | null
           full_description: string | null
+          full_description_ml: Json | null
           id: string
           image_url: string | null
           in_stock: boolean | null
@@ -102,9 +109,11 @@ export type Database = {
           is_featured: boolean | null
           low_stock_threshold: number | null
           name: string
+          name_ml: Json | null
           old_price: number | null
           price: number
           short_description: string | null
+          short_description_ml: Json | null
           size: string | null
           slug: string
           stock_quantity: number | null
@@ -118,6 +127,7 @@ export type Database = {
           colors?: Json | null
           created_at?: string | null
           full_description?: string | null
+          full_description_ml?: Json | null
           id?: string
           image_url?: string | null
           in_stock?: boolean | null
@@ -126,9 +136,11 @@ export type Database = {
           is_featured?: boolean | null
           low_stock_threshold?: number | null
           name: string
+          name_ml?: Json | null
           old_price?: number | null
           price?: number
           short_description?: string | null
+          short_description_ml?: Json | null
           size?: string | null
           slug: string
           stock_quantity?: number | null
@@ -142,6 +154,7 @@ export type Database = {
           colors?: Json | null
           created_at?: string | null
           full_description?: string | null
+          full_description_ml?: Json | null
           id?: string
           image_url?: string | null
           in_stock?: boolean | null
@@ -150,9 +163,11 @@ export type Database = {
           is_featured?: boolean | null
           low_stock_threshold?: number | null
           name?: string
+          name_ml?: Json | null
           old_price?: number | null
           price?: number
           short_description?: string | null
+          short_description_ml?: Json | null
           size?: string | null
           slug?: string
           stock_quantity?: number | null
@@ -275,6 +290,7 @@ export type Database = {
           colors: Json | null
           created_at: string | null
           full_description: string | null
+          full_description_ml: Json | null
           id: string | null
           image_url: string | null
           in_stock: boolean | null
@@ -282,9 +298,11 @@ export type Database = {
           is_bestseller: boolean | null
           is_featured: boolean | null
           name: string | null
+          name_ml: Json | null
           old_price: number | null
           price: number | null
           short_description: string | null
+          short_description_ml: Json | null
           size: string | null
           slug: string | null
           updated_at: string | null
@@ -297,6 +315,7 @@ export type Database = {
           colors?: Json | null
           created_at?: string | null
           full_description?: string | null
+          full_description_ml?: Json | null
           id?: string | null
           image_url?: string | null
           in_stock?: boolean | null
@@ -304,9 +323,11 @@ export type Database = {
           is_bestseller?: boolean | null
           is_featured?: boolean | null
           name?: string | null
+          name_ml?: Json | null
           old_price?: number | null
           price?: number | null
           short_description?: string | null
+          short_description_ml?: Json | null
           size?: string | null
           slug?: string | null
           updated_at?: string | null
@@ -319,6 +340,7 @@ export type Database = {
           colors?: Json | null
           created_at?: string | null
           full_description?: string | null
+          full_description_ml?: Json | null
           id?: string | null
           image_url?: string | null
           in_stock?: boolean | null
@@ -326,9 +348,11 @@ export type Database = {
           is_bestseller?: boolean | null
           is_featured?: boolean | null
           name?: string | null
+          name_ml?: Json | null
           old_price?: number | null
           price?: number | null
           short_description?: string | null
+          short_description_ml?: Json | null
           size?: string | null
           slug?: string | null
           updated_at?: string | null

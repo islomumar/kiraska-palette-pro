@@ -4,7 +4,6 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -17,37 +16,36 @@ import {
 import { ArrowLeft, Loader2, Save, Upload, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { z } from 'zod';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
+import { MultiLangInput, MultiLangValue, jsonToMultiLang } from '@/components/admin/MultiLangInput';
+import { Json } from '@/integrations/supabase/types';
 
 interface Category {
   id: string;
   name: string;
 }
 
-const productSchema = z.object({
-  name: z.string().min(1, 'Mahsulot nomi kiritilishi shart'),
-  slug: z.string().min(1, 'Slug kiritilishi shart'),
-  price: z.number().min(0, 'Narx 0 dan kam bo\'lmasligi kerak'),
-  old_price: z.number().nullable(),
-  brand: z.string().nullable(),
-  volume: z.string().nullable(),
-  color_name: z.string().nullable(),
-  in_stock: z.boolean(),
-  is_featured: z.boolean(),
-  is_bestseller: z.boolean(),
-  is_active: z.boolean(),
-  image_url: z.string().nullable(),
-  short_description: z.string().nullable(),
-  full_description: z.string().nullable(),
-  category_id: z.string().nullable(),
-  stock_quantity: z.number().min(0, 'Zaxira 0 dan kam bo\'lmasligi kerak'),
-  low_stock_threshold: z.number().min(0, 'Chegara 0 dan kam bo\'lmasligi kerak'),
-  size: z.string().nullable(),
-  colors: z.array(z.string()).nullable(),
-});
-
-type ProductFormData = z.infer<typeof productSchema>;
+interface ProductFormData {
+  name_ml: MultiLangValue;
+  slug: string;
+  price: number;
+  old_price: number | null;
+  brand: string | null;
+  volume: string | null;
+  color_name: string | null;
+  in_stock: boolean;
+  is_featured: boolean;
+  is_bestseller: boolean;
+  is_active: boolean;
+  image_url: string | null;
+  short_description_ml: MultiLangValue;
+  full_description_ml: MultiLangValue;
+  category_id: string | null;
+  stock_quantity: number;
+  low_stock_threshold: number;
+  size: string | null;
+  colors: string[] | null;
+}
 
 const volumeOptions = ['1L', '3L', '5L', '10L', '15L', '20L'];
 
@@ -66,7 +64,7 @@ export default function AdminProductForm() {
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
 
   const [formData, setFormData] = useState<ProductFormData>({
-    name: '',
+    name_ml: {},
     slug: '',
     price: 0,
     old_price: null,
@@ -78,8 +76,8 @@ export default function AdminProductForm() {
     is_bestseller: false,
     is_active: true,
     image_url: '',
-    short_description: '',
-    full_description: '',
+    short_description_ml: {},
+    full_description_ml: {},
     category_id: null,
     stock_quantity: 0,
     low_stock_threshold: 5,
@@ -118,7 +116,7 @@ export default function AdminProductForm() {
           navigate('/admin/products');
         } else {
           setFormData({
-            name: data.name,
+            name_ml: jsonToMultiLang(data.name_ml) || { uz: data.name },
             slug: data.slug,
             price: Number(data.price),
             old_price: data.old_price ? Number(data.old_price) : null,
@@ -130,8 +128,8 @@ export default function AdminProductForm() {
             is_bestseller: data.is_bestseller ?? false,
             is_active: data.is_active ?? true,
             image_url: data.image_url || '',
-            short_description: data.short_description || '',
-            full_description: data.full_description || '',
+            short_description_ml: jsonToMultiLang(data.short_description_ml) || { uz: data.short_description || '' },
+            full_description_ml: jsonToMultiLang(data.full_description_ml) || { uz: data.full_description || '' },
             category_id: data.category_id,
             stock_quantity: data.stock_quantity ?? 0,
             low_stock_threshold: data.low_stock_threshold ?? 5,
@@ -155,11 +153,11 @@ export default function AdminProductForm() {
       .trim();
   };
 
-  const handleNameChange = (value: string) => {
+  const handleNameChange = (value: MultiLangValue) => {
     setFormData((prev) => ({
       ...prev,
-      name: value,
-      slug: generateSlug(value),
+      name_ml: value,
+      slug: generateSlug(value.uz || ''),
     }));
   };
 
@@ -175,7 +173,6 @@ export default function AdminProductForm() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: 'Xatolik',
@@ -185,7 +182,6 @@ export default function AdminProductForm() {
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: 'Xatolik',
@@ -234,26 +230,43 @@ export default function AdminProductForm() {
     e.preventDefault();
     setErrors({});
 
-    const result = productSchema.safeParse(formData);
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        fieldErrors[err.path[0] as string] = err.message;
-      });
-      setErrors(fieldErrors);
+    // Validate required fields
+    if (!formData.name_ml.uz) {
+      setErrors({ name: 'O\'zbekcha nom kiritilishi shart' });
+      return;
+    }
+    if (!formData.slug) {
+      setErrors({ slug: 'Slug kiritilishi shart' });
+      return;
+    }
+    if (formData.price < 0) {
+      setErrors({ price: 'Narx 0 dan kam bo\'lmasligi kerak' });
       return;
     }
 
     setIsSaving(true);
 
     const productData = {
-      ...formData,
+      name: formData.name_ml.uz || '',
+      name_ml: formData.name_ml as Json,
+      slug: formData.slug,
+      price: formData.price,
+      old_price: formData.old_price,
       brand: formData.brand || null,
       volume: formData.volume || null,
       color_name: formData.color_name || null,
+      in_stock: formData.in_stock,
+      is_featured: formData.is_featured,
+      is_bestseller: formData.is_bestseller,
+      is_active: formData.is_active,
       image_url: formData.image_url || null,
-      short_description: formData.short_description || null,
-      full_description: formData.full_description || null,
+      short_description: formData.short_description_ml.uz || null,
+      short_description_ml: formData.short_description_ml as Json,
+      full_description: formData.full_description_ml.uz || null,
+      full_description_ml: formData.full_description_ml as Json,
+      category_id: formData.category_id,
+      stock_quantity: formData.stock_quantity,
+      low_stock_threshold: formData.low_stock_threshold,
       size: formData.size || null,
       colors: formData.colors || [],
     };
@@ -265,27 +278,7 @@ export default function AdminProductForm() {
         .update(productData)
         .eq('id', id));
     } else {
-      ({ error } = await supabase.from('products').insert([{
-        name: formData.name,
-        slug: formData.slug,
-        price: formData.price,
-        old_price: formData.old_price,
-        brand: formData.brand || null,
-        volume: formData.volume || null,
-        color_name: formData.color_name || null,
-        in_stock: formData.in_stock,
-        is_featured: formData.is_featured,
-        is_bestseller: formData.is_bestseller,
-        is_active: formData.is_active,
-        image_url: formData.image_url || null,
-        short_description: formData.short_description || null,
-        full_description: formData.full_description || null,
-        category_id: formData.category_id,
-        stock_quantity: formData.stock_quantity,
-        low_stock_threshold: formData.low_stock_threshold,
-        size: formData.size || null,
-        colors: formData.colors || [],
-      }]));
+      ({ error } = await supabase.from('products').insert([productData]));
     }
 
     if (error) {
@@ -345,15 +338,15 @@ export default function AdminProductForm() {
                 <CardTitle>Asosiy ma'lumotlar</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nomi *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                  />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
+                <MultiLangInput
+                  label="Nomi"
+                  value={formData.name_ml}
+                  onChange={handleNameChange}
+                  type="input"
+                  placeholder="Mahsulot nomi"
+                  required
+                  error={errors.name}
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="slug">Slug *</Label>
@@ -544,6 +537,22 @@ export default function AdminProductForm() {
                     }
                   />
                 </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div>
+                    <Label htmlFor="is_active">Faol holati</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.is_active ? 'Saytda ko\'rsatiladi' : 'Saytda ko\'rsatilmaydi'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_active: checked }))
+                    }
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -553,7 +562,6 @@ export default function AdminProductForm() {
                 <CardTitle>Rasm</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Image input mode toggle */}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -646,29 +654,23 @@ export default function AdminProductForm() {
                 <CardTitle>Tavsif</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="short_description">Qisqa tavsif</Label>
-                  <Textarea
-                    id="short_description"
-                    value={formData.short_description || ''}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, short_description: e.target.value }))
-                    }
-                    rows={4}
-                  />
-                </div>
+                <MultiLangInput
+                  label="Qisqa tavsif"
+                  value={formData.short_description_ml}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, short_description_ml: value }))}
+                  type="textarea"
+                  placeholder="Qisqa tavsif"
+                  rows={3}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="full_description">To'liq tavsif</Label>
-                  <Textarea
-                    id="full_description"
-                    value={formData.full_description || ''}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, full_description: e.target.value }))
-                    }
-                    rows={4}
-                  />
-                </div>
+                <MultiLangInput
+                  label="To'liq tavsif"
+                  value={formData.full_description_ml}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, full_description_ml: value }))}
+                  type="textarea"
+                  placeholder="To'liq tavsif"
+                  rows={3}
+                />
               </CardContent>
             </Card>
           </div>
