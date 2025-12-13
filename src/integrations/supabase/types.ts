@@ -255,30 +255,6 @@ export type Database = {
       }
     }
     Views: {
-      orders_limited: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          status: string | null
-          total_amount: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          status?: string | null
-          total_amount?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          status?: string | null
-          total_amount?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       products_public: {
         Row: {
           brand: string | null
