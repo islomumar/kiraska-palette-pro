@@ -3,7 +3,6 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -35,30 +34,34 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, FolderTree, Loader2, Upload, Link as LinkIcon, ImageIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { z } from 'zod';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { MultiLangInput, MultiLangValue, getLocalizedText, jsonToMultiLang } from '@/components/admin/MultiLangInput';
+import { Json } from '@/integrations/supabase/types';
 
 interface Category {
   id: string;
   name: string;
+  name_ml: MultiLangValue;
   slug: string;
   description: string | null;
+  description_ml: MultiLangValue;
   image_url: string | null;
   is_active: boolean;
 }
 
-const categorySchema = z.object({
-  name: z.string().min(1, 'Kategoriya nomi kiritilishi shart'),
-  slug: z.string().min(1, 'Slug kiritilishi shart'),
-  description: z.string().nullable(),
-  image_url: z.string().nullable(),
-  is_active: z.boolean(),
-});
-
-type CategoryFormData = z.infer<typeof categorySchema>;
+interface CategoryFormData {
+  name_ml: MultiLangValue;
+  slug: string;
+  description_ml: MultiLangValue;
+  image_url: string | null;
+  is_active: boolean;
+}
 
 export default function AdminCategories() {
+  const { currentLanguage } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -72,9 +75,9 @@ export default function AdminCategories() {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<CategoryFormData>({
-    name: '',
+    name_ml: {},
     slug: '',
-    description: '',
+    description_ml: {},
     image_url: '',
     is_active: true,
   });
@@ -83,7 +86,7 @@ export default function AdminCategories() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, slug, description, image_url, is_active')
+      .select('id, name, name_ml, slug, description, description_ml, image_url, is_active')
       .order('name');
 
     if (error) {
@@ -93,7 +96,16 @@ export default function AdminCategories() {
         variant: 'destructive',
       });
     } else {
-      setCategories(data || []);
+      setCategories((data || []).map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        name_ml: jsonToMultiLang(cat.name_ml),
+        slug: cat.slug,
+        description: cat.description,
+        description_ml: jsonToMultiLang(cat.description_ml),
+        image_url: cat.image_url,
+        is_active: cat.is_active,
+      })));
     }
     setIsLoading(false);
   };
@@ -165,17 +177,17 @@ export default function AdminCategories() {
       .trim();
   };
 
-  const handleNameChange = (value: string) => {
+  const handleNameChange = (value: MultiLangValue) => {
     setFormData((prev) => ({
       ...prev,
-      name: value,
-      slug: generateSlug(value),
+      name_ml: value,
+      slug: generateSlug(value.uz || ''),
     }));
   };
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    setFormData({ name: '', slug: '', description: '', image_url: '', is_active: true });
+    setFormData({ name_ml: {}, slug: '', description_ml: {}, image_url: '', is_active: true });
     setErrors({});
     setImageInputMode('url');
     setIsDialogOpen(true);
@@ -184,9 +196,9 @@ export default function AdminCategories() {
   const openEditDialog = (category: Category) => {
     setEditingCategory(category);
     setFormData({
-      name: category.name,
+      name_ml: category.name_ml || { uz: category.name },
       slug: category.slug,
-      description: category.description || '',
+      description_ml: category.description_ml || { uz: category.description || '' },
       image_url: category.image_url || '',
       is_active: category.is_active,
     });
@@ -220,22 +232,24 @@ export default function AdminCategories() {
     e.preventDefault();
     setErrors({});
 
-    const result = categorySchema.safeParse(formData);
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        fieldErrors[err.path[0] as string] = err.message;
-      });
-      setErrors(fieldErrors);
+    // Validate required fields
+    if (!formData.name_ml.uz) {
+      setErrors({ name: 'O\'zbekcha nom kiritilishi shart' });
+      return;
+    }
+    if (!formData.slug) {
+      setErrors({ slug: 'Slug kiritilishi shart' });
       return;
     }
 
     setIsSaving(true);
 
     const categoryData = {
-      name: formData.name,
+      name: formData.name_ml.uz || '',
+      name_ml: formData.name_ml as Json,
       slug: formData.slug,
-      description: formData.description || null,
+      description: formData.description_ml.uz || null,
+      description_ml: formData.description_ml as Json,
       image_url: formData.image_url || null,
       is_active: formData.is_active,
     };
@@ -347,7 +361,7 @@ export default function AdminCategories() {
                             {category.image_url ? (
                               <img
                                 src={category.image_url}
-                                alt={category.name}
+                                alt={getLocalizedText(category.name_ml, currentLanguage) || category.name}
                                 className="h-full w-full object-cover"
                               />
                             ) : (
@@ -357,7 +371,9 @@ export default function AdminCategories() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {getLocalizedText(category.name_ml, currentLanguage) || category.name}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {category.slug}
                         </TableCell>
@@ -400,10 +416,10 @@ export default function AdminCategories() {
           </CardContent>
         </Card>
 
-        {/* Create/Edit Dialog */}
+        {/* Create/Edit Dialog with fixed height and scroll */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>
                 {editingCategory ? 'Kategoriyani tahrirlash' : 'Yangi kategoriya'}
               </DialogTitle>
@@ -413,105 +429,114 @@ export default function AdminCategories() {
                   : 'Yangi kategoriya qo\'shing'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="cat-name">Nomi *</Label>
-                <Input
-                  id="cat-name"
-                  value={formData.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
+            
+            <ScrollArea className="flex-1 pr-4">
+              <form id="category-form" onSubmit={handleSubmit} className="space-y-4 py-2">
+                <MultiLangInput
+                  label="Nomi"
+                  value={formData.name_ml}
+                  onChange={handleNameChange}
+                  type="input"
+                  placeholder="Kategoriya nomi"
+                  required
+                  error={errors.name}
                 />
-                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cat-slug">Slug *</Label>
-                <Input
-                  id="cat-slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
+                <div className="space-y-2">
+                  <Label htmlFor="cat-slug">Slug *</Label>
+                  <Input
+                    id="cat-slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
+                  />
+                  {errors.slug && <p className="text-sm text-destructive">{errors.slug}</p>}
+                </div>
+
+                <MultiLangInput
+                  label="Tavsif"
+                  value={formData.description_ml}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, description_ml: value }))}
+                  type="textarea"
+                  placeholder="Kategoriya tavsifi"
+                  rows={2}
                 />
-                {errors.slug && <p className="text-sm text-destructive">{errors.slug}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cat-description">Tavsif</Label>
-                <Textarea
-                  id="cat-description"
-                  value={formData.description || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Kategoriya rasmi</Label>
-                <Tabs value={imageInputMode} onValueChange={(v) => setImageInputMode(v as 'url' | 'upload')}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="url">
-                      <LinkIcon className="mr-2 h-4 w-4" />
-                      URL
-                    </TabsTrigger>
-                    <TabsTrigger value="upload">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Yuklash
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="url" className="space-y-2">
-                    <Input
-                      placeholder="https://example.com/image.jpg"
-                      value={formData.image_url || ''}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
-                    />
-                  </TabsContent>
-                  <TabsContent value="upload" className="space-y-2">
-                    <div className="flex items-center gap-2">
+                <div className="space-y-2">
+                  <Label>Kategoriya rasmi</Label>
+                  <Tabs value={imageInputMode} onValueChange={(v) => setImageInputMode(v as 'url' | 'upload')}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="url">
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        URL
+                      </TabsTrigger>
+                      <TabsTrigger value="upload">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Yuklash
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="url" className="space-y-2">
                       <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
+                        placeholder="https://example.com/image.jpg"
+                        value={formData.image_url || ''}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
                       />
-                      {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </TabsContent>
+                    <TabsContent value="upload" className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={isUploading}
+                        />
+                        {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                  {formData.image_url && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground mb-2">Ko'rib chiqish:</p>
+                      <div className="h-20 w-20 rounded-lg overflow-hidden bg-secondary">
+                        <img
+                          src={formData.image_url}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
-                {formData.image_url && (
-                  <div className="mt-2">
-                    <p className="text-sm text-muted-foreground mb-2">Ko'rib chiqish:</p>
-                    <div className="h-24 w-24 rounded-lg overflow-hidden bg-secondary">
-                      <img
-                        src={formData.image_url}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Bekor qilish
-                </Button>
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saqlanmoqda...
-                    </>
-                  ) : (
-                    'Saqlash'
                   )}
-                </Button>
-              </DialogFooter>
-            </form>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is-active">Faol holati</Label>
+                  <Switch
+                    id="is-active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_active: checked }))}
+                  />
+                </div>
+              </form>
+            </ScrollArea>
+
+            <DialogFooter className="flex-shrink-0 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Bekor qilish
+              </Button>
+              <Button type="submit" form="category-form" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saqlanmoqda...
+                  </>
+                ) : (
+                  'Saqlash'
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
