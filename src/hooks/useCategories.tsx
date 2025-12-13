@@ -7,11 +7,32 @@ export interface Category {
   slug: string;
   description: string | null;
   image_url: string | null;
+  is_active: boolean;
 }
 
+// Public hook - only returns active categories
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      return data as Category[];
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+  });
+}
+
+// Admin hook - returns all categories
+export function useAllCategories() {
+  return useQuery({
+    queryKey: ['categories', 'all'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories')
@@ -36,10 +57,11 @@ export function useCategoryBySlug(slug: string | undefined) {
         .from('categories')
         .select('*')
         .eq('slug', slug)
-        .single();
+        .eq('is_active', true)
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Category;
+      return data as Category | null;
     },
     enabled: !!slug,
     staleTime: 1000 * 60 * 5,
