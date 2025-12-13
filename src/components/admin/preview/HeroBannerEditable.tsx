@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Palette, Truck, Award, Sparkles } from "lucide-react";
-import heroPaint from "@/assets/hero-paint-new.jpg";
+import heroInterior from "@/assets/hero-interior.jpg";
 import { EditableText } from '../EditableText';
 
 export function HeroBannerEditable() {
@@ -9,7 +9,7 @@ export function HeroBannerEditable() {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
-          src={heroPaint}
+          src={heroInterior}
           alt="Interior Design"
           className="w-full h-full object-cover"
           loading="eager"
