@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Palette, Truck, Award, Sparkles } from "lucide-react";
-import heroPaint from "@/assets/hero-paint-new.jpg";
+import heroInterior from "@/assets/hero-interior.jpg";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
@@ -23,7 +23,7 @@ export function HeroBanner() {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
-          src={heroPaint}
+          src={heroInterior}
           alt="Interior Design"
           className="w-full h-full object-cover"
           loading="eager"
