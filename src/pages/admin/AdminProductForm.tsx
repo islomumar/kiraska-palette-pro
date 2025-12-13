@@ -163,7 +163,6 @@ export default function AdminProductForm() {
     setFormData((prev) => ({
       ...prev,
       name_ml: value,
-      slug: generateSlug(value.uz || ''),
     }));
   };
 

@@ -186,7 +186,6 @@ export default function AdminCategories() {
     setFormData((prev) => ({
       ...prev,
       name_ml: value,
-      slug: generateSlug(value.uz || ''),
     }));
   };
 
@@ -425,7 +424,7 @@ export default function AdminCategories() {
 
         {/* Create/Edit Dialog with fixed height and scroll */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+          <DialogContent className="w-full max-w-[95vw] sm:max-w-[700px] md:max-w-[800px] max-h-[85vh] flex flex-col p-6">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle>
                 {editingCategory ? t('admin.categories.edit') : t('admin.categories.new')}
