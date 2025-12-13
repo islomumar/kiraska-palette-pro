@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -31,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, FolderTree, Loader2, Upload, Link as LinkIcon, ImageIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +45,7 @@ interface Category {
   slug: string;
   description: string | null;
   image_url: string | null;
+  is_active: boolean;
 }
 
 const categorySchema = z.object({
@@ -50,6 +53,7 @@ const categorySchema = z.object({
   slug: z.string().min(1, 'Slug kiritilishi shart'),
   description: z.string().nullable(),
   image_url: z.string().nullable(),
+  is_active: z.boolean(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -72,13 +76,14 @@ export default function AdminCategories() {
     slug: '',
     description: '',
     image_url: '',
+    is_active: true,
   });
 
   const fetchCategories = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, slug, description, image_url')
+      .select('id, name, slug, description, image_url, is_active')
       .order('name');
 
     if (error) {
@@ -170,7 +175,7 @@ export default function AdminCategories() {
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    setFormData({ name: '', slug: '', description: '', image_url: '' });
+    setFormData({ name: '', slug: '', description: '', image_url: '', is_active: true });
     setErrors({});
     setImageInputMode('url');
     setIsDialogOpen(true);
@@ -183,10 +188,32 @@ export default function AdminCategories() {
       slug: category.slug,
       description: category.description || '',
       image_url: category.image_url || '',
+      is_active: category.is_active,
     });
     setErrors({});
     setImageInputMode('url');
     setIsDialogOpen(true);
+  };
+
+  const handleToggleActive = async (categoryId: string, isActive: boolean) => {
+    const { error } = await supabase
+      .from('categories')
+      .update({ is_active: isActive })
+      .eq('id', categoryId);
+
+    if (error) {
+      toast({
+        title: 'Xatolik',
+        description: 'Holatni o\'zgartirishda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Muvaffaqiyat',
+        description: isActive ? 'Kategoriya faollashtirildi' : 'Kategoriya o\'chirildi',
+      });
+      fetchCategories();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -210,6 +237,7 @@ export default function AdminCategories() {
       slug: formData.slug,
       description: formData.description || null,
       image_url: formData.image_url || null,
+      is_active: formData.is_active,
     };
 
     let error;
@@ -307,7 +335,7 @@ export default function AdminCategories() {
                       <TableHead className="w-16">Rasm</TableHead>
                       <TableHead>Nomi</TableHead>
                       <TableHead>Slug</TableHead>
-                      <TableHead>Tavsif</TableHead>
+                      <TableHead>Holati</TableHead>
                       <TableHead className="text-right">Amallar</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -333,8 +361,16 @@ export default function AdminCategories() {
                         <TableCell className="text-muted-foreground">
                           {category.slug}
                         </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {category.description || '-'}
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={category.is_active}
+                              onCheckedChange={(checked) => handleToggleActive(category.id, checked)}
+                            />
+                            <Badge variant={category.is_active ? 'default' : 'secondary'}>
+                              {category.is_active ? 'Faol' : 'Nofaol'}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

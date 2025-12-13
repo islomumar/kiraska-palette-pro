@@ -36,12 +36,15 @@ const productSchema = z.object({
   in_stock: z.boolean(),
   is_featured: z.boolean(),
   is_bestseller: z.boolean(),
+  is_active: z.boolean(),
   image_url: z.string().nullable(),
   short_description: z.string().nullable(),
   full_description: z.string().nullable(),
   category_id: z.string().nullable(),
   stock_quantity: z.number().min(0, 'Zaxira 0 dan kam bo\'lmasligi kerak'),
   low_stock_threshold: z.number().min(0, 'Chegara 0 dan kam bo\'lmasligi kerak'),
+  size: z.string().nullable(),
+  colors: z.array(z.string()).nullable(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -73,12 +76,15 @@ export default function AdminProductForm() {
     in_stock: true,
     is_featured: false,
     is_bestseller: false,
+    is_active: true,
     image_url: '',
     short_description: '',
     full_description: '',
     category_id: null,
     stock_quantity: 0,
     low_stock_threshold: 5,
+    size: '',
+    colors: [],
   });
 
   useEffect(() => {
@@ -122,12 +128,15 @@ export default function AdminProductForm() {
             in_stock: data.in_stock ?? true,
             is_featured: data.is_featured ?? false,
             is_bestseller: data.is_bestseller ?? false,
+            is_active: data.is_active ?? true,
             image_url: data.image_url || '',
             short_description: data.short_description || '',
             full_description: data.full_description || '',
             category_id: data.category_id,
             stock_quantity: data.stock_quantity ?? 0,
             low_stock_threshold: data.low_stock_threshold ?? 5,
+            size: data.size || '',
+            colors: Array.isArray(data.colors) ? data.colors as string[] : [],
           });
         }
         setIsLoading(false);
@@ -245,6 +254,8 @@ export default function AdminProductForm() {
       image_url: formData.image_url || null,
       short_description: formData.short_description || null,
       full_description: formData.full_description || null,
+      size: formData.size || null,
+      colors: formData.colors || [],
     };
 
     let error;
@@ -265,12 +276,15 @@ export default function AdminProductForm() {
         in_stock: formData.in_stock,
         is_featured: formData.is_featured,
         is_bestseller: formData.is_bestseller,
+        is_active: formData.is_active,
         image_url: formData.image_url || null,
         short_description: formData.short_description || null,
         full_description: formData.full_description || null,
         category_id: formData.category_id,
         stock_quantity: formData.stock_quantity,
         low_stock_threshold: formData.low_stock_threshold,
+        size: formData.size || null,
+        colors: formData.colors || [],
       }]));
     }
 

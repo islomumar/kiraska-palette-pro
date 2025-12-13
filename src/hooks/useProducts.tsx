@@ -17,16 +17,39 @@ export interface Product {
   is_featured: boolean | null;
   in_stock: boolean | null;
   category_id: string | null;
+  is_active: boolean;
+  size: string | null;
+  colors: string[] | null;
   created_at: string | null;
   updated_at: string | null;
 }
 
+// Public hook - only returns active products
 export function useProducts() {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('products_public')
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Product[];
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+  });
+}
+
+// Admin hook - returns all products
+export function useAllProducts() {
+  return useQuery({
+    queryKey: ['products', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -45,13 +68,14 @@ export function useProductBySlug(slug: string | undefined) {
       if (!slug) return null;
       
       const { data, error } = await supabase
-        .from('products_public')
+        .from('products')
         .select('*')
         .eq('slug', slug)
-        .single();
+        .eq('is_active', true)
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Product;
+      return data as Product | null;
     },
     enabled: !!slug,
     staleTime: 1000 * 60 * 5,
@@ -63,9 +87,10 @@ export function useBestsellers() {
     queryKey: ['bestsellers'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('products_public')
+        .from('products')
         .select('*')
         .eq('is_bestseller', true)
+        .eq('is_active', true)
         .limit(8);
 
       if (error) throw error;
@@ -83,9 +108,10 @@ export function useProductsByCategory(categoryId: string | undefined) {
       if (!categoryId) return [];
       
       const { data, error } = await supabase
-        .from('products_public')
+        .from('products')
         .select('*')
         .eq('category_id', categoryId)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

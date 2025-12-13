@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -35,6 +36,7 @@ interface Product {
   price: number;
   in_stock: boolean | null;
   is_featured: boolean | null;
+  is_active: boolean;
   image_url: string | null;
   category_id: string | null;
   categories?: { name: string } | null;
@@ -53,7 +55,7 @@ export default function AdminProducts() {
     const { data, error } = await supabase
       .from('products')
       .select(`
-        id, name, brand, price, in_stock, is_featured, image_url, category_id,
+        id, name, brand, price, in_stock, is_featured, is_active, image_url, category_id,
         categories(name)
       `)
       .order('created_at', { ascending: false });
@@ -100,6 +102,27 @@ export default function AdminProducts() {
 
     setIsDeleting(false);
     setDeleteId(null);
+  };
+
+  const handleToggleActive = async (productId: string, isActive: boolean) => {
+    const { error } = await supabase
+      .from('products')
+      .update({ is_active: isActive })
+      .eq('id', productId);
+
+    if (error) {
+      toast({
+        title: 'Xatolik',
+        description: 'Holatni o\'zgartirishda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Muvaffaqiyat',
+        description: isActive ? 'Mahsulot faollashtirildi' : 'Mahsulot yashirildi',
+      });
+      fetchProducts();
+    }
   };
 
   const filteredProducts = products.filter((product) => {
@@ -170,6 +193,7 @@ export default function AdminProducts() {
                       <TableHead>Brend</TableHead>
                       <TableHead>Kategoriya</TableHead>
                       <TableHead>Narxi</TableHead>
+                      <TableHead>Faol</TableHead>
                       <TableHead>Holati</TableHead>
                       <TableHead className="text-right">Amallar</TableHead>
                     </TableRow>
@@ -196,6 +220,17 @@ export default function AdminProducts() {
                         <TableCell>{product.brand || '-'}</TableCell>
                         <TableCell>{product.categories?.name || '-'}</TableCell>
                         <TableCell>{formatPrice(Number(product.price))}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={product.is_active}
+                              onCheckedChange={(checked) => handleToggleActive(product.id, checked)}
+                            />
+                            <Badge variant={product.is_active ? 'default' : 'secondary'}>
+                              {product.is_active ? 'Faol' : 'Nofaol'}
+                            </Badge>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {product.in_stock ? (
