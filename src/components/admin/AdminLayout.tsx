@@ -80,18 +80,15 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center justify-between border-b border-border px-6">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">K</span>
-              </div>
-              <span className="font-bold text-foreground">Admin Panel</span>
+          <div className="flex h-14 items-center gap-2 border-b border-border px-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <span className="text-sm font-bold text-primary-foreground">K</span>
             </div>
-            <LanguageSwitcher />
+            <span className="font-bold text-foreground">Admin</span>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4">
+          {/* Navigation - scrollable */}
+          <nav className="flex-1 space-y-1 overflow-y-auto p-4">
             {sidebarLinks.map((link) => {
               const isActive = location.pathname.startsWith(link.path);
               return (
@@ -113,31 +110,37 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="border-t border-border p-4">
-            <div className="mb-1 px-3 text-xs text-muted-foreground">
-              {user.email}
-            </div>
-            {userRole && (
-              <div className="mb-3 px-3">
-                <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  {roleLabels[userRole] || userRole}
-                </span>
+          {/* Footer - fixed at bottom */}
+          <div className="shrink-0 border-t border-border bg-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1 min-w-0">
+                <div className="truncate text-xs text-muted-foreground">
+                  {user.email}
+                </div>
+                {userRole && (
+                  <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mt-1">
+                    {roleLabels[userRole] || userRole}
+                  </span>
+                )}
               </div>
-            )}
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-5 w-5" />
-              Chiqish
-            </Button>
-            <Link to="/" className="mt-2 block">
-              <Button variant="outline" className="w-full text-sm">
-                Saytga qaytish
+              <LanguageSwitcher />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 justify-center gap-2 text-muted-foreground hover:text-destructive"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4" />
+                Chiqish
               </Button>
-            </Link>
+              <Link to="/" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full text-xs">
+                  Saytga
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </aside>

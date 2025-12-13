@@ -8,6 +8,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
 
+const shortLabels: Record<Language, string> = {
+  uz: 'UZ',
+  ky: 'KG',
+  tj: 'TJ',
+  ru: 'RU',
+  zh: 'CN',
+};
+
 export function LanguageSwitcher() {
   const { currentLanguage, setLanguage } = useLanguage();
   
@@ -17,21 +25,19 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button variant="ghost" size="sm" className="gap-1.5 px-2">
           <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">{currentLangData?.flag} {currentLangData?.name}</span>
-          <span className="sm:hidden">{currentLangData?.flag}</span>
+          <span>{shortLabels[currentLanguage]}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[150px]">
+      <DropdownMenuContent align="end" className="min-w-[80px]">
         {otherLanguages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => setLanguage(lang.code)}
-            className="gap-2 cursor-pointer"
+            className="gap-2 cursor-pointer justify-center"
           >
-            <span>{lang.flag}</span>
-            <span>{lang.name}</span>
+            <span>{shortLabels[lang.code]}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

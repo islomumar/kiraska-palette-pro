@@ -25,9 +25,7 @@ export function GlobalLangTabs({ activeLanguage, onLanguageChange }: GlobalLangT
               value={lang.code}
               className="flex items-center gap-1.5 text-sm font-medium px-2"
             >
-              <span>{lang.flag}</span>
-              <span className="hidden md:inline">{lang.name}</span>
-              <span className="md:hidden">{shortLabels[lang.code]}</span>
+              <span>{shortLabels[lang.code]}</span>
             </TabsTrigger>
           ))}
         </TabsList>
