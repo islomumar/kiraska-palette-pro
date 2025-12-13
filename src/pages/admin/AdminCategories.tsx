@@ -37,9 +37,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { useTranslations } from '@/hooks/useTranslations';
-import { MultiLangInput, MultiLangValue, getLocalizedText, jsonToMultiLang } from '@/components/admin/MultiLangInput';
+import { MultiLangValue, getLocalizedText, jsonToMultiLang } from '@/components/admin/MultiLangInput';
+import { GlobalLangTabs } from '@/components/admin/GlobalLangTabs';
+import { SingleLangInput } from '@/components/admin/SingleLangInput';
 import { Json } from '@/integrations/supabase/types';
 
 interface Category {
@@ -74,6 +76,7 @@ export default function AdminCategories() {
   const [isUploading, setIsUploading] = useState(false);
   const [imageInputMode, setImageInputMode] = useState<'url' | 'upload'>('url');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formLanguage, setFormLanguage] = useState<Language>('uz');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<CategoryFormData>({
@@ -192,6 +195,7 @@ export default function AdminCategories() {
     setFormData({ name_ml: {}, slug: '', description_ml: {}, image_url: '', is_active: true });
     setErrors({});
     setImageInputMode('url');
+    setFormLanguage('uz');
     setIsDialogOpen(true);
   };
 
@@ -206,6 +210,7 @@ export default function AdminCategories() {
     });
     setErrors({});
     setImageInputMode('url');
+    setFormLanguage('uz');
     setIsDialogOpen(true);
   };
 
@@ -434,9 +439,12 @@ export default function AdminCategories() {
             
             <ScrollArea className="flex-1 pr-4">
               <form id="category-form" onSubmit={handleSubmit} className="space-y-4 py-2">
-                <MultiLangInput
+                <GlobalLangTabs activeLanguage={formLanguage} onLanguageChange={setFormLanguage} />
+                
+                <SingleLangInput
                   label={t('form.name')}
                   value={formData.name_ml}
+                  activeLanguage={formLanguage}
                   onChange={handleNameChange}
                   type="input"
                   placeholder={t('placeholder.enterName')}
@@ -454,9 +462,10 @@ export default function AdminCategories() {
                   {errors.slug && <p className="text-sm text-destructive">{errors.slug}</p>}
                 </div>
 
-                <MultiLangInput
+                <SingleLangInput
                   label={t('form.description')}
                   value={formData.description_ml}
+                  activeLanguage={formLanguage}
                   onChange={(value) => setFormData((prev) => ({ ...prev, description_ml: value }))}
                   type="textarea"
                   placeholder={t('placeholder.enterDescription')}

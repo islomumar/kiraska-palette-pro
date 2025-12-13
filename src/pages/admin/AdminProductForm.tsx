@@ -18,7 +18,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from '@/hooks/useTranslations';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
-import { MultiLangInput, MultiLangValue, jsonToMultiLang } from '@/components/admin/MultiLangInput';
+import { MultiLangValue, jsonToMultiLang } from '@/components/admin/MultiLangInput';
+import { GlobalLangTabs } from '@/components/admin/GlobalLangTabs';
+import { SingleLangInput } from '@/components/admin/SingleLangInput';
+import { Language } from '@/contexts/LanguageContext';
 import { Json } from '@/integrations/supabase/types';
 
 interface Category {
@@ -64,6 +67,7 @@ export default function AdminProductForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
+  const [formLanguage, setFormLanguage] = useState<Language>('uz');
 
   const [formData, setFormData] = useState<ProductFormData>({
     name_ml: {},
@@ -333,6 +337,9 @@ export default function AdminProductForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Global Language Selector */}
+          <GlobalLangTabs activeLanguage={formLanguage} onLanguageChange={setFormLanguage} />
+          
           <div className="grid gap-6 md:grid-cols-2">
             {/* Basic Info */}
             <Card>
@@ -340,9 +347,10 @@ export default function AdminProductForm() {
                 <CardTitle>{t('section.basicInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <MultiLangInput
+                <SingleLangInput
                   label={t('form.name')}
                   value={formData.name_ml}
+                  activeLanguage={formLanguage}
                   onChange={handleNameChange}
                   type="input"
                   placeholder={t('placeholder.enterName')}
@@ -656,18 +664,20 @@ export default function AdminProductForm() {
                 <CardTitle>{t('section.description')}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <MultiLangInput
+                <SingleLangInput
                   label={t('form.shortDescription')}
                   value={formData.short_description_ml}
+                  activeLanguage={formLanguage}
                   onChange={(value) => setFormData((prev) => ({ ...prev, short_description_ml: value }))}
                   type="textarea"
                   placeholder={t('placeholder.enterDescription')}
                   rows={3}
                 />
 
-                <MultiLangInput
+                <SingleLangInput
                   label={t('form.fullDescription')}
                   value={formData.full_description_ml}
+                  activeLanguage={formLanguage}
                   onChange={(value) => setFormData((prev) => ({ ...prev, full_description_ml: value }))}
                   type="textarea"
                   placeholder={t('placeholder.enterDescription')}
