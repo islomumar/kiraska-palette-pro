@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { languages, Language } from '@/contexts/LanguageContext';
 import { Json } from '@/integrations/supabase/types';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export interface MultiLangValue {
   uz?: string;
@@ -35,6 +36,8 @@ export function MultiLangInput({
   error,
   rows = 3,
 }: MultiLangInputProps) {
+  const { t } = useTranslations();
+  
   const handleChange = (lang: Language, text: string) => {
     onChange({
       ...value,
@@ -63,19 +66,19 @@ export function MultiLangInput({
               <Input
                 value={value[lang.code] || ''}
                 onChange={(e) => handleChange(lang.code, e.target.value)}
-                placeholder={placeholder ? `${placeholder} (${lang.name})` : lang.name}
+                placeholder={placeholder || ''}
               />
             ) : (
               <Textarea
                 value={value[lang.code] || ''}
                 onChange={(e) => handleChange(lang.code, e.target.value)}
-                placeholder={placeholder ? `${placeholder} (${lang.name})` : lang.name}
+                placeholder={placeholder || ''}
                 rows={rows}
               />
             )}
             {lang.code !== 'uz' && !value[lang.code] && value.uz && (
               <p className="text-xs text-muted-foreground mt-1">
-                Bo'sh qoldirilsa, O'zbekcha matn ko'rsatiladi
+                {t('hint.fallbackText')}
               </p>
             )}
           </TabsContent>

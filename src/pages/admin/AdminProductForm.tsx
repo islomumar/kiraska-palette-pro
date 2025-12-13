@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, Loader2, Save, Upload, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslations } from '@/hooks/useTranslations';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { MultiLangInput, MultiLangValue, jsonToMultiLang } from '@/components/admin/MultiLangInput';
 import { Json } from '@/integrations/supabase/types';
@@ -54,6 +55,7 @@ export default function AdminProductForm() {
   const isEditing = !!id;
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslations();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -109,8 +111,8 @@ export default function AdminProductForm() {
 
         if (error || !data) {
           toast({
-            title: 'Xatolik',
-            description: 'Mahsulot topilmadi',
+            title: t('common.error'),
+            description: t('admin.products.notFound'),
             variant: 'destructive',
           });
           navigate('/admin/products');
@@ -175,8 +177,8 @@ export default function AdminProductForm() {
 
     if (!file.type.startsWith('image/')) {
       toast({
-        title: 'Xatolik',
-        description: 'Faqat rasm fayllarini yuklash mumkin',
+        title: t('common.error'),
+        description: t('image.typeError'),
         variant: 'destructive',
       });
       return;
@@ -184,8 +186,8 @@ export default function AdminProductForm() {
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: 'Xatolik',
-        description: 'Fayl hajmi 5MB dan oshmasligi kerak',
+        title: t('common.error'),
+        description: t('image.sizeError'),
         variant: 'destructive',
       });
       return;
@@ -211,14 +213,14 @@ export default function AdminProductForm() {
       setFormData((prev) => ({ ...prev, image_url: publicUrl }));
       
       toast({
-        title: 'Muvaffaqiyat',
-        description: 'Rasm muvaffaqiyatli yuklandi',
+        title: t('common.success'),
+        description: t('image.uploadSuccess'),
       });
     } catch (error) {
       console.error('Upload error:', error);
       toast({
-        title: 'Xatolik',
-        description: 'Rasmni yuklashda xatolik yuz berdi',
+        title: t('common.error'),
+        description: t('image.uploadError'),
         variant: 'destructive',
       });
     } finally {
@@ -232,15 +234,15 @@ export default function AdminProductForm() {
 
     // Validate required fields
     if (!formData.name_ml.uz) {
-      setErrors({ name: 'O\'zbekcha nom kiritilishi shart' });
+      setErrors({ name: t('hint.nameRequired') });
       return;
     }
     if (!formData.slug) {
-      setErrors({ slug: 'Slug kiritilishi shart' });
+      setErrors({ slug: t('hint.slugRequired') });
       return;
     }
     if (formData.price < 0) {
-      setErrors({ price: 'Narx 0 dan kam bo\'lmasligi kerak' });
+      setErrors({ price: t('hint.priceRequired') });
       return;
     }
 
@@ -283,14 +285,14 @@ export default function AdminProductForm() {
 
     if (error) {
       toast({
-        title: 'Xatolik',
-        description: `Mahsulotni ${isEditing ? 'yangilash' : 'qo\'shish'}da xatolik yuz berdi`,
+        title: t('common.error'),
+        description: t('admin.products.saveError'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Muvaffaqiyat',
-        description: `Mahsulot muvaffaqiyatli ${isEditing ? 'yangilandi' : 'qo\'shildi'}`,
+        title: t('common.success'),
+        description: isEditing ? t('admin.products.updated') : t('admin.products.created'),
       });
       navigate('/admin/products');
     }
@@ -322,10 +324,10 @@ export default function AdminProductForm() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              {isEditing ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot'}
+              {isEditing ? t('admin.products.edit') : t('admin.products.new')}
             </h1>
             <p className="text-muted-foreground">
-              {isEditing ? 'Mahsulot ma\'lumotlarini yangilang' : 'Yangi mahsulot qo\'shing'}
+              {isEditing ? t('admin.products.edit') : t('admin.products.new')}
             </p>
           </div>
         </div>
@@ -335,21 +337,21 @@ export default function AdminProductForm() {
             {/* Basic Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Asosiy ma'lumotlar</CardTitle>
+                <CardTitle>{t('section.basicInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <MultiLangInput
-                  label="Nomi"
+                  label={t('form.name')}
                   value={formData.name_ml}
                   onChange={handleNameChange}
                   type="input"
-                  placeholder="Mahsulot nomi"
+                  placeholder={t('placeholder.enterName')}
                   required
                   error={errors.name}
                 />
 
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Slug *</Label>
+                  <Label htmlFor="slug">{t('form.slug')} *</Label>
                   <Input
                     id="slug"
                     value={formData.slug}
@@ -359,7 +361,7 @@ export default function AdminProductForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Kategoriya</Label>
+                  <Label htmlFor="category">{t('form.category')}</Label>
                   <Select
                     value={formData.category_id || 'none'}
                     onValueChange={(value) =>
@@ -370,10 +372,10 @@ export default function AdminProductForm() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Kategoriya tanlang" />
+                      <SelectValue placeholder={t('common.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Tanlanmagan</SelectItem>
+                      <SelectItem value="none">{t('common.notSelected')}</SelectItem>
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
@@ -384,7 +386,7 @@ export default function AdminProductForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="brand">Brend</Label>
+                  <Label htmlFor="brand">{t('form.brand')}</Label>
                   <Input
                     id="brand"
                     value={formData.brand || ''}
@@ -397,11 +399,11 @@ export default function AdminProductForm() {
             {/* Pricing */}
             <Card>
               <CardHeader>
-                <CardTitle>Narx</CardTitle>
+                <CardTitle>{t('section.pricing')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Narxi (so'm) *</Label>
+                  <Label htmlFor="price">{t('form.price')} *</Label>
                   <FormattedNumberInput
                     id="price"
                     value={formData.price}
@@ -413,7 +415,7 @@ export default function AdminProductForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="old_price">Eski narxi (so'm)</Label>
+                  <Label htmlFor="old_price">{t('form.oldPrice')}</Label>
                   <FormattedNumberInput
                     id="old_price"
                     value={formData.old_price || 0}
@@ -427,7 +429,7 @@ export default function AdminProductForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="volume">Hajmi</Label>
+                  <Label htmlFor="volume">{t('form.volume')}</Label>
                   <Select
                     value={formData.volume || 'none'}
                     onValueChange={(value) =>
@@ -438,10 +440,10 @@ export default function AdminProductForm() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Hajmini tanlang" />
+                      <SelectValue placeholder={t('common.notSelected')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Tanlanmagan</SelectItem>
+                      <SelectItem value="none">{t('common.notSelected')}</SelectItem>
                       {volumeOptions.map((vol) => (
                         <SelectItem key={vol} value={vol}>
                           {vol}
@@ -452,7 +454,7 @@ export default function AdminProductForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="color_name">Rang nomi</Label>
+                  <Label htmlFor="color_name">{t('form.colorName')}</Label>
                   <Input
                     id="color_name"
                     value={formData.color_name || ''}
@@ -467,11 +469,11 @@ export default function AdminProductForm() {
             {/* Stock Management */}
             <Card>
               <CardHeader>
-                <CardTitle>Zaxira boshqaruvi</CardTitle>
+                <CardTitle>{t('section.stockManagement')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="stock_quantity">Zaxira miqdori *</Label>
+                  <Label htmlFor="stock_quantity">{t('form.stockQuantity')} *</Label>
                   <FormattedNumberInput
                     id="stock_quantity"
                     value={formData.stock_quantity}
@@ -481,7 +483,7 @@ export default function AdminProductForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="low_stock_threshold">Kam zaxira chegarasi</Label>
+                  <Label htmlFor="low_stock_threshold">{t('form.lowStockThreshold')}</Label>
                   <FormattedNumberInput
                     id="low_stock_threshold"
                     value={formData.low_stock_threshold}
@@ -490,15 +492,15 @@ export default function AdminProductForm() {
                     }
                   />
                   <p className="text-xs text-muted-foreground">
-                    Zaxira bu miqdordan kam bo'lganda ogohlantirish ko'rsatiladi
+                    {t('hint.lowStockWarning')}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">
                   <div>
-                    <Label htmlFor="in_stock">Mavjud (In Stock)</Label>
+                    <Label htmlFor="in_stock">{t('form.inStock')}</Label>
                     <p className="text-xs text-muted-foreground">
-                      {formData.in_stock ? 'Mahsulot sotuvda' : 'Mahsulot mavjud emas'}
+                      {formData.in_stock ? t('hint.inStockActive') : t('hint.inStockInactive')}
                     </p>
                   </div>
                   <Switch
@@ -512,8 +514,8 @@ export default function AdminProductForm() {
 
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">
                   <div>
-                    <Label htmlFor="is_featured">Featured</Label>
-                    <p className="text-xs text-muted-foreground">Bosh sahifada ko'rsatiladi</p>
+                    <Label htmlFor="is_featured">{t('form.featured')}</Label>
+                    <p className="text-xs text-muted-foreground">{t('hint.featuredHint')}</p>
                   </div>
                   <Switch
                     id="is_featured"
@@ -526,8 +528,8 @@ export default function AdminProductForm() {
 
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">
                   <div>
-                    <Label htmlFor="is_bestseller">Bestseller</Label>
-                    <p className="text-xs text-muted-foreground">Eng ko'p sotilgan deb belgilanadi</p>
+                    <Label htmlFor="is_bestseller">{t('form.bestseller')}</Label>
+                    <p className="text-xs text-muted-foreground">{t('hint.bestsellerHint')}</p>
                   </div>
                   <Switch
                     id="is_bestseller"
@@ -540,9 +542,9 @@ export default function AdminProductForm() {
 
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">
                   <div>
-                    <Label htmlFor="is_active">Faol holati</Label>
+                    <Label htmlFor="is_active">{t('form.activeStatus')}</Label>
                     <p className="text-xs text-muted-foreground">
-                      {formData.is_active ? 'Saytda ko\'rsatiladi' : 'Saytda ko\'rsatilmaydi'}
+                      {formData.is_active ? t('hint.activeOnSite') : t('hint.inactiveOnSite')}
                     </p>
                   </div>
                   <Switch
@@ -559,7 +561,7 @@ export default function AdminProductForm() {
             {/* Image */}
             <Card>
               <CardHeader>
-                <CardTitle>Rasm</CardTitle>
+                <CardTitle>{t('section.image')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
@@ -570,7 +572,7 @@ export default function AdminProductForm() {
                     onClick={() => setImageInputMode('upload')}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    Yuklash
+                    {t('common.upload')}
                   </Button>
                   <Button
                     type="button"
@@ -579,7 +581,7 @@ export default function AdminProductForm() {
                     onClick={() => setImageInputMode('url')}
                   >
                     <LinkIcon className="mr-2 h-4 w-4" />
-                    URL
+                    {t('common.url')}
                   </Button>
                 </div>
 
@@ -602,26 +604,26 @@ export default function AdminProductForm() {
                       {isUploading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Yuklanmoqda...
+                          {t('common.uploading')}
                         </>
                       ) : (
                         <>
                           <Upload className="mr-2 h-4 w-4" />
-                          Rasm tanlash
+                          {t('common.selectImage')}
                         </>
                       )}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor="image_url">Rasm URL</Label>
+                    <Label htmlFor="image_url">{t('form.imageUrl')}</Label>
                     <Input
                       id="image_url"
                       value={formData.image_url || ''}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, image_url: e.target.value }))
                       }
-                      placeholder="https://example.com/image.jpg"
+                      placeholder={t('placeholder.enterUrl')}
                     />
                   </div>
                 )}
@@ -641,7 +643,7 @@ export default function AdminProductForm() {
                   <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/50">
                     <div className="text-center">
                       <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <p className="mt-2 text-sm text-muted-foreground">Rasm tanlanmagan</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{t('common.noImage')}</p>
                     </div>
                   </div>
                 )}
@@ -651,24 +653,24 @@ export default function AdminProductForm() {
             {/* Descriptions */}
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Tavsif</CardTitle>
+                <CardTitle>{t('section.description')}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <MultiLangInput
-                  label="Qisqa tavsif"
+                  label={t('form.shortDescription')}
                   value={formData.short_description_ml}
                   onChange={(value) => setFormData((prev) => ({ ...prev, short_description_ml: value }))}
                   type="textarea"
-                  placeholder="Qisqa tavsif"
+                  placeholder={t('placeholder.enterDescription')}
                   rows={3}
                 />
 
                 <MultiLangInput
-                  label="To'liq tavsif"
+                  label={t('form.fullDescription')}
                   value={formData.full_description_ml}
                   onChange={(value) => setFormData((prev) => ({ ...prev, full_description_ml: value }))}
                   type="textarea"
-                  placeholder="To'liq tavsif"
+                  placeholder={t('placeholder.enterDescription')}
                   rows={3}
                 />
               </CardContent>
@@ -682,18 +684,18 @@ export default function AdminProductForm() {
               variant="outline"
               onClick={() => navigate('/admin/products')}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saqlanmoqda...
+                  {t('common.saving')}
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Saqlash
+                  {t('common.save')}
                 </>
               )}
             </Button>
