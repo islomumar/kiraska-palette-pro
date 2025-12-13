@@ -6,6 +6,14 @@ interface GlobalLangTabsProps {
   onLanguageChange: (lang: Language) => void;
 }
 
+const shortLabels: Record<Language, string> = {
+  uz: 'UZ',
+  ky: 'KG',
+  tj: 'TJ',
+  ru: 'RU',
+  zh: 'CN',
+};
+
 export function GlobalLangTabs({ activeLanguage, onLanguageChange }: GlobalLangTabsProps) {
   return (
     <div className="mb-4 rounded-lg border border-border bg-muted/30 p-3">
@@ -15,10 +23,11 @@ export function GlobalLangTabs({ activeLanguage, onLanguageChange }: GlobalLangT
             <TabsTrigger
               key={lang.code}
               value={lang.code}
-              className="flex items-center gap-2 text-sm font-medium"
+              className="flex items-center gap-1.5 text-sm font-medium px-2"
             >
               <span>{lang.flag}</span>
-              <span className="hidden sm:inline">{lang.name}</span>
+              <span className="hidden md:inline">{lang.name}</span>
+              <span className="md:hidden">{shortLabels[lang.code]}</span>
             </TabsTrigger>
           ))}
         </TabsList>
