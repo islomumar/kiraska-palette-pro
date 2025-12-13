@@ -31,7 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, FolderTree, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderTree, Loader2, Upload, Link as LinkIcon, ImageIcon } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -41,12 +42,14 @@ interface Category {
   name: string;
   slug: string;
   description: string | null;
+  image_url: string | null;
 }
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Kategoriya nomi kiritilishi shart'),
   slug: z.string().min(1, 'Slug kiritilishi shart'),
   description: z.string().nullable(),
+  image_url: z.string().nullable(),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -59,6 +62,8 @@ export default function AdminCategories() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageInputMode, setImageInputMode] = useState<'url' | 'upload'>('url');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
@@ -66,13 +71,14 @@ export default function AdminCategories() {
     name: '',
     slug: '',
     description: '',
+    image_url: '',
   });
 
   const fetchCategories = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, slug, description')
+      .select('id, name, slug, description, image_url')
       .order('name');
 
     if (error) {
@@ -85,6 +91,60 @@ export default function AdminCategories() {
       setCategories(data || []);
     }
     setIsLoading(false);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Xatolik',
+        description: 'Faqat JPG, PNG, WEBP va GIF formatlarida rasm yuklash mumkin',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Xatolik',
+        description: 'Rasm hajmi 5MB dan oshmasligi kerak',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `category-${Date.now()}.${fileExt}`;
+    const filePath = `categories/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      toast({
+        title: 'Xatolik',
+        description: 'Rasmni yuklashda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+      setIsUploading(false);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    setFormData((prev) => ({ ...prev, image_url: publicUrlData.publicUrl }));
+    setIsUploading(false);
+    toast({
+      title: 'Muvaffaqiyat',
+      description: 'Rasm muvaffaqiyatli yuklandi',
+    });
   };
 
   useEffect(() => {
@@ -110,8 +170,9 @@ export default function AdminCategories() {
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    setFormData({ name: '', slug: '', description: '' });
+    setFormData({ name: '', slug: '', description: '', image_url: '' });
     setErrors({});
+    setImageInputMode('url');
     setIsDialogOpen(true);
   };
 
@@ -121,8 +182,10 @@ export default function AdminCategories() {
       name: category.name,
       slug: category.slug,
       description: category.description || '',
+      image_url: category.image_url || '',
     });
     setErrors({});
+    setImageInputMode('url');
     setIsDialogOpen(true);
   };
 
@@ -146,6 +209,7 @@ export default function AdminCategories() {
       name: formData.name,
       slug: formData.slug,
       description: formData.description || null,
+      image_url: formData.image_url || null,
     };
 
     let error;
@@ -240,6 +304,7 @@ export default function AdminCategories() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-16">Rasm</TableHead>
                       <TableHead>Nomi</TableHead>
                       <TableHead>Slug</TableHead>
                       <TableHead>Tavsif</TableHead>
@@ -249,6 +314,21 @@ export default function AdminCategories() {
                   <TableBody>
                     {categories.map((category) => (
                       <TableRow key={category.id}>
+                        <TableCell>
+                          <div className="h-10 w-10 rounded-md overflow-hidden bg-secondary">
+                            {category.image_url ? (
+                              <img
+                                src={category.image_url}
+                                alt={category.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center">
+                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-medium">{category.name}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {category.slug}
@@ -328,6 +408,52 @@ export default function AdminCategories() {
                   }
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Kategoriya rasmi</Label>
+                <Tabs value={imageInputMode} onValueChange={(v) => setImageInputMode(v as 'url' | 'upload')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="url">
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      URL
+                    </TabsTrigger>
+                    <TabsTrigger value="upload">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Yuklash
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="url" className="space-y-2">
+                    <Input
+                      placeholder="https://example.com/image.jpg"
+                      value={formData.image_url || ''}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
+                    />
+                  </TabsContent>
+                  <TabsContent value="upload" className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                      />
+                      {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                {formData.image_url && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground mb-2">Ko'rib chiqish:</p>
+                    <div className="h-24 w-24 rounded-lg overflow-hidden bg-secondary">
+                      <img
+                        src={formData.image_url}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
