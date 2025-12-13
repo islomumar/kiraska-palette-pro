@@ -38,6 +38,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslations } from '@/hooks/useTranslations';
 import { MultiLangInput, MultiLangValue, getLocalizedText, jsonToMultiLang } from '@/components/admin/MultiLangInput';
 import { Json } from '@/integrations/supabase/types';
 
@@ -62,6 +63,7 @@ interface CategoryFormData {
 
 export default function AdminCategories() {
   const { currentLanguage } = useLanguage();
+  const { t } = useTranslations();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -91,8 +93,8 @@ export default function AdminCategories() {
 
     if (error) {
       toast({
-        title: 'Xatolik',
-        description: 'Kategoriyalarni yuklashda xatolik yuz berdi',
+        title: t('common.error'),
+        description: t('admin.categories.loadError'),
         variant: 'destructive',
       });
     } else {
@@ -117,8 +119,8 @@ export default function AdminCategories() {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: 'Xatolik',
-        description: 'Faqat JPG, PNG, WEBP va GIF formatlarida rasm yuklash mumkin',
+        title: t('common.error'),
+        description: t('image.typeError'),
         variant: 'destructive',
       });
       return;
@@ -126,8 +128,8 @@ export default function AdminCategories() {
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: 'Xatolik',
-        description: 'Rasm hajmi 5MB dan oshmasligi kerak',
+        title: t('common.error'),
+        description: t('image.sizeError'),
         variant: 'destructive',
       });
       return;
@@ -144,8 +146,8 @@ export default function AdminCategories() {
 
     if (uploadError) {
       toast({
-        title: 'Xatolik',
-        description: 'Rasmni yuklashda xatolik yuz berdi',
+        title: t('common.error'),
+        description: t('image.uploadError'),
         variant: 'destructive',
       });
       setIsUploading(false);
@@ -159,8 +161,8 @@ export default function AdminCategories() {
     setFormData((prev) => ({ ...prev, image_url: publicUrlData.publicUrl }));
     setIsUploading(false);
     toast({
-      title: 'Muvaffaqiyat',
-      description: 'Rasm muvaffaqiyatli yuklandi',
+      title: t('common.success'),
+      description: t('image.uploadSuccess'),
     });
   };
 
@@ -215,14 +217,14 @@ export default function AdminCategories() {
 
     if (error) {
       toast({
-        title: 'Xatolik',
-        description: 'Holatni o\'zgartirishda xatolik yuz berdi',
+        title: t('common.error'),
+        description: t('admin.categories.statusError'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Muvaffaqiyat',
-        description: isActive ? 'Kategoriya faollashtirildi' : 'Kategoriya o\'chirildi',
+        title: t('common.success'),
+        description: isActive ? t('admin.categories.activated') : t('admin.categories.deactivated'),
       });
       fetchCategories();
     }
@@ -234,11 +236,11 @@ export default function AdminCategories() {
 
     // Validate required fields
     if (!formData.name_ml.uz) {
-      setErrors({ name: 'O\'zbekcha nom kiritilishi shart' });
+      setErrors({ name: t('hint.nameRequired') });
       return;
     }
     if (!formData.slug) {
-      setErrors({ slug: 'Slug kiritilishi shart' });
+      setErrors({ slug: t('hint.slugRequired') });
       return;
     }
 
@@ -266,14 +268,14 @@ export default function AdminCategories() {
 
     if (error) {
       toast({
-        title: 'Xatolik',
-        description: `Kategoriyani ${editingCategory ? 'yangilash' : 'qo\'shish'}da xatolik yuz berdi`,
+        title: t('common.error'),
+        description: t('admin.categories.saveError'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Muvaffaqiyat',
-        description: `Kategoriya muvaffaqiyatli ${editingCategory ? 'yangilandi' : 'qo\'shildi'}`,
+        title: t('common.success'),
+        description: editingCategory ? t('admin.categories.updated') : t('admin.categories.created'),
       });
       setIsDialogOpen(false);
       fetchCategories();
@@ -293,14 +295,14 @@ export default function AdminCategories() {
 
     if (error) {
       toast({
-        title: 'Xatolik',
-        description: 'Kategoriyani o\'chirishda xatolik yuz berdi',
+        title: t('common.error'),
+        description: t('admin.categories.deleteError'),
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Muvaffaqiyat',
-        description: 'Kategoriya muvaffaqiyatli o\'chirildi',
+        title: t('common.success'),
+        description: t('admin.categories.deleted'),
       });
       fetchCategories();
     }
@@ -315,21 +317,21 @@ export default function AdminCategories() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Kategoriyalar</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('admin.categories.title')}</h1>
             <p className="text-muted-foreground">
-              Barcha kategoriyalarni boshqarish
+              {t('admin.categories.subtitle')}
             </p>
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
-            Yangi kategoriya
+            {t('admin.categories.new')}
           </Button>
         </div>
 
         {/* Categories Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Kategoriyalar ro'yxati ({categories.length})</CardTitle>
+            <CardTitle>{t('admin.categories.list')} ({categories.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -339,18 +341,18 @@ export default function AdminCategories() {
             ) : categories.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <FolderTree className="mb-4 h-12 w-12 text-muted-foreground" />
-                <p className="text-muted-foreground">Kategoriyalar topilmadi</p>
+                <p className="text-muted-foreground">{t('admin.categories.notFound')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-16">Rasm</TableHead>
-                      <TableHead>Nomi</TableHead>
-                      <TableHead>Slug</TableHead>
-                      <TableHead>Holati</TableHead>
-                      <TableHead className="text-right">Amallar</TableHead>
+                      <TableHead className="w-16">{t('form.image')}</TableHead>
+                      <TableHead>{t('form.name')}</TableHead>
+                      <TableHead>{t('form.slug')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="text-right">{t('common.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -384,7 +386,7 @@ export default function AdminCategories() {
                               onCheckedChange={(checked) => handleToggleActive(category.id, checked)}
                             />
                             <Badge variant={category.is_active ? 'default' : 'secondary'}>
-                              {category.is_active ? 'Faol' : 'Nofaol'}
+                              {category.is_active ? t('common.active') : t('common.inactive')}
                             </Badge>
                           </div>
                         </TableCell>
@@ -421,29 +423,29 @@ export default function AdminCategories() {
           <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle>
-                {editingCategory ? 'Kategoriyani tahrirlash' : 'Yangi kategoriya'}
+                {editingCategory ? t('admin.categories.edit') : t('admin.categories.new')}
               </DialogTitle>
               <DialogDescription>
                 {editingCategory
-                  ? 'Kategoriya ma\'lumotlarini yangilang'
-                  : 'Yangi kategoriya qo\'shing'}
+                  ? t('admin.categories.edit')
+                  : t('admin.categories.new')}
               </DialogDescription>
             </DialogHeader>
             
             <ScrollArea className="flex-1 pr-4">
               <form id="category-form" onSubmit={handleSubmit} className="space-y-4 py-2">
                 <MultiLangInput
-                  label="Nomi"
+                  label={t('form.name')}
                   value={formData.name_ml}
                   onChange={handleNameChange}
                   type="input"
-                  placeholder="Kategoriya nomi"
+                  placeholder={t('placeholder.enterName')}
                   required
                   error={errors.name}
                 />
 
                 <div className="space-y-2">
-                  <Label htmlFor="cat-slug">Slug *</Label>
+                  <Label htmlFor="cat-slug">{t('form.slug')} *</Label>
                   <Input
                     id="cat-slug"
                     value={formData.slug}
@@ -453,30 +455,30 @@ export default function AdminCategories() {
                 </div>
 
                 <MultiLangInput
-                  label="Tavsif"
+                  label={t('form.description')}
                   value={formData.description_ml}
                   onChange={(value) => setFormData((prev) => ({ ...prev, description_ml: value }))}
                   type="textarea"
-                  placeholder="Kategoriya tavsifi"
+                  placeholder={t('placeholder.enterDescription')}
                   rows={2}
                 />
 
                 <div className="space-y-2">
-                  <Label>Kategoriya rasmi</Label>
+                  <Label>{t('section.categoryImage')}</Label>
                   <Tabs value={imageInputMode} onValueChange={(v) => setImageInputMode(v as 'url' | 'upload')}>
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="url">
                         <LinkIcon className="mr-2 h-4 w-4" />
-                        URL
+                        {t('common.url')}
                       </TabsTrigger>
                       <TabsTrigger value="upload">
                         <Upload className="mr-2 h-4 w-4" />
-                        Yuklash
+                        {t('common.upload')}
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="url" className="space-y-2">
                       <Input
-                        placeholder="https://example.com/image.jpg"
+                        placeholder={t('placeholder.enterUrl')}
                         value={formData.image_url || ''}
                         onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
                       />
@@ -495,7 +497,7 @@ export default function AdminCategories() {
                   </Tabs>
                   {formData.image_url && (
                     <div className="mt-2">
-                      <p className="text-sm text-muted-foreground mb-2">Ko'rib chiqish:</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t('common.preview')}:</p>
                       <div className="h-20 w-20 rounded-lg overflow-hidden bg-secondary">
                         <img
                           src={formData.image_url}
@@ -508,7 +510,7 @@ export default function AdminCategories() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="is-active">Faol holati</Label>
+                  <Label htmlFor="is-active">{t('form.activeStatus')}</Label>
                   <Switch
                     id="is-active"
                     checked={formData.is_active}
@@ -524,16 +526,16 @@ export default function AdminCategories() {
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
               >
-                Bekor qilish
+                {t('common.cancel')}
               </Button>
               <Button type="submit" form="category-form" disabled={isSaving}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saqlanmoqda...
+                    {t('common.saving')}
                   </>
                 ) : (
-                  'Saqlash'
+                  t('common.save')
                 )}
               </Button>
             </DialogFooter>
@@ -544,14 +546,13 @@ export default function AdminCategories() {
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Kategoriyani o'chirish</AlertDialogTitle>
+              <AlertDialogTitle>{t('admin.categories.deleteTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Haqiqatan ham bu kategoriyani o'chirmoqchimisiz? Bu amalni qaytarib
-                bo'lmaydi.
+                {t('admin.categories.deleteDescription')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Bekor qilish</AlertDialogCancel>
+              <AlertDialogCancel disabled={isDeleting}>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 disabled={isDeleting}
@@ -560,10 +561,10 @@ export default function AdminCategories() {
                 {isDeleting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    O'chirilmoqda...
+                    {t('common.deleting')}
                   </>
                 ) : (
-                  "O'chirish"
+                  t('common.delete')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>
