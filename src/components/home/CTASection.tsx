@@ -41,7 +41,7 @@ export function CTASection() {
                   <ArrowRight className="h-5 w-5 ml-1" />
                 </Link>
               </Button>
-              <Button asChild size="xl" variant="outline" className="rounded-full border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button asChild size="xl" className="rounded-full bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg">
                 <a href="tel:+998901234567">
                   <Phone className="h-5 w-5 mr-2" />
                   {renderText('cta_btn_call', "Qo'ng'iroq")}
