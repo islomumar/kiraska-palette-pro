@@ -9,6 +9,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SiteContentProvider } from "@/hooks/useSiteContent";
 import { EditModeProvider } from "@/contexts/EditModeContext";
 import { AdminSiteContentLayout } from "@/components/admin/AdminSiteContentLayout";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -44,6 +45,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <AuthProvider>
           <LanguageProvider>
             <SiteContentProvider>
