@@ -24,6 +24,10 @@ export type Database = {
           is_active: boolean
           name: string
           name_ml: Json | null
+          position: number | null
+          seo_description_ml: Json | null
+          seo_keywords_ml: Json | null
+          seo_title_ml: Json | null
           slug: string
           updated_at: string | null
         }
@@ -36,6 +40,10 @@ export type Database = {
           is_active?: boolean
           name: string
           name_ml?: Json | null
+          position?: number | null
+          seo_description_ml?: Json | null
+          seo_keywords_ml?: Json | null
+          seo_title_ml?: Json | null
           slug: string
           updated_at?: string | null
         }
@@ -48,7 +56,47 @@ export type Database = {
           is_active?: boolean
           name?: string
           name_ml?: Json | null
+          position?: number | null
+          seo_description_ml?: Json | null
+          seo_keywords_ml?: Json | null
+          seo_title_ml?: Json | null
           slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      languages: {
+        Row: {
+          code: string
+          created_at: string | null
+          flag: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          position: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          flag?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          position?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          flag?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          position?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -111,7 +159,11 @@ export type Database = {
           name: string
           name_ml: Json | null
           old_price: number | null
+          position: number | null
           price: number
+          seo_description_ml: Json | null
+          seo_keywords_ml: Json | null
+          seo_title_ml: Json | null
           short_description: string | null
           short_description_ml: Json | null
           size: string | null
@@ -138,7 +190,11 @@ export type Database = {
           name: string
           name_ml?: Json | null
           old_price?: number | null
+          position?: number | null
           price?: number
+          seo_description_ml?: Json | null
+          seo_keywords_ml?: Json | null
+          seo_title_ml?: Json | null
           short_description?: string | null
           short_description_ml?: Json | null
           size?: string | null
@@ -165,7 +221,11 @@ export type Database = {
           name?: string
           name_ml?: Json | null
           old_price?: number | null
+          position?: number | null
           price?: number
+          seo_description_ml?: Json | null
+          seo_keywords_ml?: Json | null
+          seo_title_ml?: Json | null
           short_description?: string | null
           short_description_ml?: Json | null
           size?: string | null
@@ -214,6 +274,30 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       stock_history: {
         Row: {
           change: number
@@ -221,6 +305,7 @@ export type Database = {
           id: string
           notes: string | null
           product_id: string
+          shop_id: string | null
           timestamp: string
           type: string
         }
@@ -230,6 +315,7 @@ export type Database = {
           id?: string
           notes?: string | null
           product_id: string
+          shop_id?: string | null
           timestamp?: string
           type: string
         }
@@ -239,6 +325,7 @@ export type Database = {
           id?: string
           notes?: string | null
           product_id?: string
+          shop_id?: string | null
           timestamp?: string
           type?: string
         }
