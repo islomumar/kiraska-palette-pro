@@ -28,6 +28,8 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminOrderDetail from "./pages/admin/AdminOrderDetail";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminInventory from "./pages/admin/AdminInventory";
+import AdminLanguages from "./pages/admin/AdminLanguages";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +73,8 @@ const App = () => (
                   <Route path="/admin/orders" element={<AdminOrders />} />
                   <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/languages" element={<AdminLanguages />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
                   {/* Admin Site Content with nested routes */}
                   <Route path="/admin/site-content" element={<AdminSiteContentLayout><Index /></AdminSiteContentLayout>} />
                   <Route path="/admin/site-content/products" element={<AdminSiteContentLayout><Products /></AdminSiteContentLayout>} />

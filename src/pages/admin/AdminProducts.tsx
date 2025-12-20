@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Pencil, Trash2, Package, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Package, Loader2, GripVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice } from '@/data/products';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +39,7 @@ interface Product {
   is_active: boolean;
   image_url: string | null;
   category_id: string | null;
+  position: number;
   categories?: { name: string } | null;
 }
 
@@ -55,10 +56,10 @@ export default function AdminProducts() {
     const { data, error } = await supabase
       .from('products')
       .select(`
-        id, name, brand, price, in_stock, is_featured, is_active, image_url, category_id,
+        id, name, brand, price, in_stock, is_featured, is_active, image_url, category_id, position,
         categories(name)
       `)
-      .order('created_at', { ascending: false });
+      .order('position', { ascending: true });
 
     if (error) {
       console.error('Error fetching products:', error);
@@ -125,6 +126,28 @@ export default function AdminProducts() {
     }
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    const filteredList = filteredProducts;
+    const currentProduct = filteredList[index];
+    const prevProduct = filteredList[index - 1];
+    
+    await supabase.from('products').update({ position: prevProduct.position }).eq('id', currentProduct.id);
+    await supabase.from('products').update({ position: currentProduct.position }).eq('id', prevProduct.id);
+    fetchProducts();
+  };
+
+  const handleMoveDown = async (index: number) => {
+    const filteredList = filteredProducts;
+    if (index === filteredList.length - 1) return;
+    const currentProduct = filteredList[index];
+    const nextProduct = filteredList[index + 1];
+    
+    await supabase.from('products').update({ position: nextProduct.position }).eq('id', currentProduct.id);
+    await supabase.from('products').update({ position: currentProduct.position }).eq('id', nextProduct.id);
+    fetchProducts();
+  };
+
   const filteredProducts = products.filter((product) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -188,6 +211,7 @@ export default function AdminProducts() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">№</TableHead>
                       <TableHead>Rasm</TableHead>
                       <TableHead>Nomi</TableHead>
                       <TableHead>Brend</TableHead>
@@ -199,8 +223,14 @@ export default function AdminProducts() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map((product) => (
+                    {filteredProducts.map((product, index) => (
                       <TableRow key={product.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                            <span>{index + 1}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="h-12 w-12 overflow-hidden rounded-lg bg-muted">
                             {product.image_url ? (
@@ -244,16 +274,34 @@ export default function AdminProducts() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleMoveUp(index)}
+                              disabled={index === 0}
+                              className="h-8 w-8"
+                            >
+                              ↑
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleMoveDown(index)}
+                              disabled={index === filteredProducts.length - 1}
+                              className="h-8 w-8"
+                            >
+                              ↓
+                            </Button>
                             <Link to={`/admin/products/${product.id}/edit`}>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             </Link>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
                               onClick={() => setDeleteId(product.id)}
                             >
                               <Trash2 className="h-4 w-4" />
