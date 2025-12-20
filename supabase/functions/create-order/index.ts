@@ -20,10 +20,96 @@ interface OrderRequest {
   address: string;
   notes?: string;
   products: OrderProduct[];
-  totalAmount: number;
+  totalAmount?: number; // Now optional - will be calculated server-side
 }
 
-async function sendTelegramNotification(order: any, products: OrderProduct[]) {
+interface ValidatedProduct {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image_url?: string;
+  serverPrice: number; // Actual price from database
+}
+
+async function validateAndCalculatePrices(
+  supabase: any,
+  products: OrderProduct[]
+): Promise<{ validatedProducts: ValidatedProduct[]; calculatedTotal: number; errors: string[] }> {
+  const errors: string[] = [];
+  const validatedProducts: ValidatedProduct[] = [];
+  let calculatedTotal = 0;
+
+  // Get all product IDs
+  const productIds = products.map(p => p.id);
+
+  // Fetch actual product prices from database
+  const { data: dbProducts, error } = await supabase
+    .from('products')
+    .select('id, name, price, in_stock, stock_quantity, is_active, image_url')
+    .in('id', productIds);
+
+  if (error) {
+    console.error('Error fetching products:', error);
+    errors.push('Ma\'lumotlar bazasidan mahsulotlarni olishda xatolik');
+    return { validatedProducts: [], calculatedTotal: 0, errors };
+  }
+
+  // Create a map for quick lookup
+  const dbProductMap = new Map(dbProducts?.map((p: any) => [p.id, p]) || []);
+
+  for (const clientProduct of products) {
+    const dbProduct = dbProductMap.get(clientProduct.id) as any;
+
+    if (!dbProduct) {
+      errors.push(`Mahsulot topilmadi: ${clientProduct.name} (ID: ${clientProduct.id})`);
+      continue;
+    }
+
+    if (!dbProduct.is_active) {
+      errors.push(`Mahsulot faol emas: ${dbProduct.name}`);
+      continue;
+    }
+
+    if (!dbProduct.in_stock || (dbProduct.stock_quantity !== null && dbProduct.stock_quantity < clientProduct.quantity)) {
+      errors.push(`Mahsulot omborda yetarli emas: ${dbProduct.name} (Mavjud: ${dbProduct.stock_quantity || 0}, So'ralgan: ${clientProduct.quantity})`);
+      continue;
+    }
+
+    if (clientProduct.quantity <= 0) {
+      errors.push(`Noto'g'ri miqdor: ${dbProduct.name}`);
+      continue;
+    }
+
+    // Use server-side price, not client-provided price
+    const serverPrice = dbProduct.price;
+    const itemTotal = serverPrice * clientProduct.quantity;
+    calculatedTotal += itemTotal;
+
+    validatedProducts.push({
+      id: clientProduct.id,
+      name: dbProduct.name, // Use server-side name
+      price: serverPrice, // Use server-side price
+      quantity: clientProduct.quantity,
+      image_url: dbProduct.image_url || clientProduct.image_url,
+      serverPrice: serverPrice,
+    });
+
+    // Log price discrepancy for audit
+    if (clientProduct.price !== serverPrice) {
+      console.warn(
+        `Price mismatch detected for product ${dbProduct.name}: ` +
+        `Client sent ${clientProduct.price}, actual price is ${serverPrice}`
+      );
+    }
+  }
+
+  console.log(`Price validation complete: ${validatedProducts.length} products validated, total: ${calculatedTotal} so'm`);
+
+  return { validatedProducts, calculatedTotal, errors };
+}
+
+async function sendTelegramNotification(order: any, products: ValidatedProduct[]) {
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
   const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
 
@@ -75,7 +161,7 @@ ${productsList}
   }
 }
 
-async function updateProductStock(supabase: any, products: OrderProduct[]) {
+async function updateProductStock(supabase: any, products: ValidatedProduct[]) {
   for (const product of products) {
     try {
       // Get current stock
@@ -140,22 +226,53 @@ serve(async (req) => {
 
     const body: OrderRequest = await req.json();
 
-    // Validate input
-    if (!body.customerName || !body.phone || !body.address || !body.products || !body.totalAmount) {
+    // Validate required input fields
+    if (!body.customerName || !body.phone || !body.address || !body.products) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Majburiy maydonlar to\'ldirilmagan' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!Array.isArray(body.products) || body.products.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Products array is required' }),
+        JSON.stringify({ error: 'Mahsulotlar ro\'yxati bo\'sh' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Save order to database
+    // Validate products and calculate total server-side
+    const { validatedProducts, calculatedTotal, errors } = await validateAndCalculatePrices(
+      supabase,
+      body.products
+    );
+
+    if (errors.length > 0) {
+      console.error('Validation errors:', errors);
+      return new Response(
+        JSON.stringify({ error: 'Mahsulotlarni tekshirishda xatolik', details: errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (validatedProducts.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Hech qanday yaroqli mahsulot topilmadi' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Log if client total differs from calculated total
+    if (body.totalAmount && body.totalAmount !== calculatedTotal) {
+      console.warn(
+        `Total amount mismatch: Client sent ${body.totalAmount}, calculated ${calculatedTotal}. Using calculated value.`
+      );
+    }
+
+    // Prepare products for storage (without serverPrice field)
+    const productsForStorage = validatedProducts.map(({ serverPrice, ...product }) => product);
+
+    // Save order to database with SERVER-CALCULATED total
     const { data: order, error } = await supabase
       .from('orders')
       .insert({
@@ -163,8 +280,8 @@ serve(async (req) => {
         phone: body.phone,
         address: body.address,
         notes: body.notes || null,
-        products: body.products,
-        total_amount: body.totalAmount,
+        products: productsForStorage,
+        total_amount: calculatedTotal, // Always use server-calculated total
         status: 'pending',
       })
       .select()
@@ -173,27 +290,31 @@ serve(async (req) => {
     if (error) {
       console.error('Database error:', error);
       return new Response(
-        JSON.stringify({ error: 'Failed to create order' }),
+        JSON.stringify({ error: 'Buyurtmani saqlashda xatolik' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Order created:', order.id);
+    console.log(`Order created: ${order.id}, Total: ${calculatedTotal} so'm`);
 
     // Update product stock quantities
-    await updateProductStock(supabase, body.products);
+    await updateProductStock(supabase, validatedProducts);
 
     // Send Telegram notification
-    await sendTelegramNotification(order, body.products);
+    await sendTelegramNotification(order, validatedProducts);
 
     return new Response(
-      JSON.stringify({ success: true, orderId: order.id }),
+      JSON.stringify({ 
+        success: true, 
+        orderId: order.id,
+        totalAmount: calculatedTotal // Return calculated total to client
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Ichki server xatosi' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
