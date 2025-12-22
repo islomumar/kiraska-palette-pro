@@ -17,7 +17,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const baseUrl = "https://kiraska.uz";
+    // Fetch domain from site_settings
+    const { data: domainSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "sitemap_domain")
+      .single();
+
+    const baseUrl = domainSetting?.value || "https://kiraska.uz";
 
     // Fetch active languages from database
     const { data: languagesData } = await supabase

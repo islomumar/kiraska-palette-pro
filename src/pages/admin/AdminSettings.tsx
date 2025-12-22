@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe, MapPin, ExternalLink, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,6 +14,7 @@ interface SiteSettings {
   favicon_url: string | null;
   facebook_pixel_id: string | null;
   facebook_domain_verification: string | null;
+  sitemap_domain: string | null;
 }
 
 export default function AdminSettings() {
@@ -22,7 +23,9 @@ export default function AdminSettings() {
     favicon_url: null,
     facebook_pixel_id: null,
     facebook_domain_verification: null,
+    sitemap_domain: null,
   });
+  const [sitemapCopied, setSitemapCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -51,12 +54,14 @@ export default function AdminSettings() {
         favicon_url: null,
         facebook_pixel_id: null,
         facebook_domain_verification: null,
+        sitemap_domain: null,
       };
       data?.forEach((item) => {
         if (item.key === 'logo_url') settingsMap.logo_url = item.value;
         if (item.key === 'favicon_url') settingsMap.favicon_url = item.value;
         if (item.key === 'facebook_pixel_id') settingsMap.facebook_pixel_id = item.value;
         if (item.key === 'facebook_domain_verification') settingsMap.facebook_domain_verification = item.value;
+        if (item.key === 'sitemap_domain') settingsMap.sitemap_domain = item.value;
       });
       setSettings(settingsMap);
     }
@@ -245,6 +250,46 @@ export default function AdminSettings() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSitemapSave = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'sitemap_domain', 
+          value: settings.sitemap_domain 
+        }, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Muvaffaqiyat',
+        description: 'Sitemap sozlamalari saqlandi',
+      });
+    } catch (error) {
+      console.error('Sitemap save error:', error);
+      toast({
+        title: 'Xatolik',
+        description: 'Saqlashda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const sitemapUrl = `https://pfcqwwbhzyuabttjzcqi.supabase.co/functions/v1/sitemap`;
+
+  const copySitemapUrl = () => {
+    navigator.clipboard.writeText(sitemapUrl);
+    setSitemapCopied(true);
+    setTimeout(() => setSitemapCopied(false), 2000);
+    toast({
+      title: 'Nusxalandi',
+      description: 'Sitemap URL nusxalandi',
+    });
   };
 
   const updateFavicon = (url: string) => {
@@ -544,6 +589,92 @@ export default function AdminSettings() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Sitemap Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-green-600" />
+              Sitemap sozlamalari
+            </CardTitle>
+            <CardDescription>
+              Google Search Console uchun sitemap domain sozlamalari
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              {/* Domain Input */}
+              <div className="space-y-2">
+                <Label htmlFor="sitemap_domain">
+                  Sayt domeni
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="sitemap_domain"
+                    value={settings.sitemap_domain || ''}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, sitemap_domain: e.target.value }))}
+                    placeholder="https://kiraska.uz"
+                  />
+                  <Button
+                    onClick={handleSitemapSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Domenni https:// bilan kiriting (masalan: https://kiraska.uz)
+                </p>
+              </div>
+
+              {/* Sitemap URL */}
+              <div className="space-y-2">
+                <Label>Sitemap URL</Label>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+                  <code className="flex-1 text-sm break-all">{sitemapUrl}</code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={copySitemapUrl}
+                  >
+                    {sitemapCopied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                  >
+                    <a href={sitemapUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Bu URL ni Google Search Console ga qo'shing
+                </p>
+              </div>
+
+              {/* Instructions */}
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                <h4 className="font-medium text-sm">Google Search Console uchun qo'llanma:</h4>
+                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Google Search Console ga kiring</li>
+                  <li>"Индексирование" → "Файлы Sitemap" bo'limiga o'ting</li>
+                  <li>Yuqoridagi Sitemap URL ni nusxalab qo'ying</li>
+                  <li>"ОТПРАВИТЬ" tugmasini bosing</li>
+                </ol>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
