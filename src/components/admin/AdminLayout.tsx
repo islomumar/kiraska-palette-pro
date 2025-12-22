@@ -13,7 +13,8 @@ import {
   Warehouse,
   FileText,
   Languages,
-  Settings
+  Settings,
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       { name: 'Kategoriyalar', path: '/admin/categories', icon: FolderTree, roles: ['superadmin', 'admin'] },
       { name: 'Sayt kontenti', path: '/admin/site-content', icon: FileText, roles: ['superadmin', 'admin'] },
       { name: 'Tillar', path: '/admin/languages', icon: Languages, roles: ['superadmin', 'admin'] },
+      { name: 'Mavzu', path: '/admin/theme', icon: Palette, roles: ['superadmin', 'admin'] },
       { name: 'Foydalanuvchilar', path: '/admin/users', icon: Users, roles: ['superadmin'] },
       { name: 'Sozlamalar', path: '/admin/settings', icon: Settings, roles: ['superadmin', 'admin'] },
     ];
