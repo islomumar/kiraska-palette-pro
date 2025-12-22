@@ -28,6 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Package, 
   Search, 
@@ -41,8 +47,14 @@ import {
   TrendingUp,
   TrendingDown,
   Calendar,
-  DollarSign
+  DollarSign,
+  Download,
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatNumberWithSpaces } from '@/components/ui/formatted-number-input';
@@ -270,6 +282,103 @@ export default function AdminInventory() {
     return { total, inStock, outOfStock, lowStock, totalValue };
   }, [products]);
 
+  const getStatusText = (product: Product) => {
+    if (!product.in_stock || product.stock_quantity === 0) return 'Mavjud emas';
+    if (product.stock_quantity <= product.low_stock_threshold) return 'Kam qoldi';
+    return 'Mavjud';
+  };
+
+  const exportToExcel = () => {
+    const data = filteredProducts.map(product => ({
+      'Mahsulot': product.name,
+      'Kategoriya': product.category?.name || '-',
+      'Joriy zaxira': product.stock_quantity,
+      'Minimal chegara': product.low_stock_threshold,
+      'Narx': product.price,
+      'Umumiy qiymat': product.price * product.stock_quantity,
+      'Status': getStatusText(product),
+    }));
+
+    // Add summary row
+    data.push({
+      'Mahsulot': 'JAMI',
+      'Kategoriya': '',
+      'Joriy zaxira': filteredProducts.reduce((sum, p) => sum + p.stock_quantity, 0),
+      'Minimal chegara': 0,
+      'Narx': 0,
+      'Umumiy qiymat': stats.totalValue,
+      'Status': '',
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ombor hisoboti');
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 30 }, // Mahsulot
+      { wch: 20 }, // Kategoriya
+      { wch: 15 }, // Joriy zaxira
+      { wch: 15 }, // Minimal chegara
+      { wch: 15 }, // Narx
+      { wch: 18 }, // Umumiy qiymat
+      { wch: 15 }, // Status
+    ];
+
+    XLSX.writeFile(wb, `ombor-hisoboti-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    
+    toast({
+      title: 'Muvaffaqiyat',
+      description: 'Excel fayl yuklab olindi',
+    });
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.text('Ombor Hisoboti', 14, 22);
+    
+    // Date
+    doc.setFontSize(10);
+    doc.text(`Sana: ${format(new Date(), 'dd.MM.yyyy HH:mm')}`, 14, 30);
+    
+    // Stats summary
+    doc.setFontSize(11);
+    doc.text(`Jami mahsulotlar: ${stats.total}`, 14, 40);
+    doc.text(`Mavjud: ${stats.inStock}`, 14, 46);
+    doc.text(`Mavjud emas: ${stats.outOfStock}`, 80, 40);
+    doc.text(`Kam qoldi: ${stats.lowStock}`, 80, 46);
+    doc.text(`Jami qiymat: ${formatNumberWithSpaces(stats.totalValue)} so'm`, 14, 54);
+
+    // Table data
+    const tableData = filteredProducts.map(product => [
+      product.name,
+      product.category?.name || '-',
+      formatNumberWithSpaces(product.stock_quantity),
+      formatNumberWithSpaces(product.low_stock_threshold),
+      formatNumberWithSpaces(product.price),
+      getStatusText(product),
+    ]);
+
+    autoTable(doc, {
+      startY: 62,
+      head: [['Mahsulot', 'Kategoriya', 'Zaxira', 'Chegara', 'Narx', 'Status']],
+      body: tableData,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [59, 130, 246] },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    doc.save(`ombor-hisoboti-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    
+    toast({
+      title: 'Muvaffaqiyat',
+      description: 'PDF fayl yuklab olindi',
+    });
+  };
+
   const getStockStatus = (product: Product) => {
     if (!product.in_stock || product.stock_quantity === 0) {
       return { label: 'Mavjud emas', color: 'text-destructive', bgColor: 'bg-red-50 dark:bg-red-900/20', icon: XCircle };
@@ -284,9 +393,29 @@ export default function AdminInventory() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Ombor</h1>
-          <p className="text-muted-foreground">Mahsulotlar zaxirasini boshqaring</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Ombor</h1>
+            <p className="text-muted-foreground">Mahsulotlar zaxirasini boshqaring</p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Eksport
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF}>
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                PDF (.pdf)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Stats */}
