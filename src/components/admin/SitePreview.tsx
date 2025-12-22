@@ -7,15 +7,20 @@ import { FooterEditable } from './preview/FooterEditable';
 
 export function SitePreview() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
+      {/* Navbar always visible at top */}
       <NavbarEditable />
-      <main>
-        <HeroBannerEditable />
-        <CategoriesEditable />
-        <BestsellersEditable />
-        <CTASectionEditable />
-      </main>
-      <FooterEditable />
+      
+      {/* Scrollable content area */}
+      <div className="max-h-[60vh] overflow-y-auto">
+        <main>
+          <HeroBannerEditable />
+          <CategoriesEditable />
+          <BestsellersEditable />
+          <CTASectionEditable />
+        </main>
+        <FooterEditable />
+      </div>
     </div>
   );
 }
