@@ -5,10 +5,13 @@ import { predefinedThemes, getThemeById, DEFAULT_THEME_ID, Theme, ThemeColors } 
 interface ThemeContextType {
   currentTheme: Theme;
   setTheme: (themeId: string) => Promise<void>;
+  setCustomTheme: (theme: Theme) => void;
   themes: Theme[];
+  customThemes: Theme[];
   isLoading: boolean;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  refreshCustomThemes: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -45,6 +48,7 @@ const applyThemeColors = (colors: ThemeColors) => {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<Theme>(getThemeById(DEFAULT_THEME_ID)!);
+  const [customThemes, setCustomThemes] = useState<Theme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -60,10 +64,40 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentTheme, isDarkMode]);
 
+  // Load custom themes from database
+  const refreshCustomThemes = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .like('key', 'custom_theme_%');
+
+      if (!error && data) {
+        const themes: Theme[] = [];
+        data.forEach(item => {
+          try {
+            const theme = JSON.parse(item.value || '{}') as Theme;
+            if (theme.id && theme.name) {
+              themes.push(theme);
+            }
+          } catch (e) {
+            console.error('Error parsing custom theme:', e);
+          }
+        });
+        setCustomThemes(themes);
+      }
+    } catch (err) {
+      console.error('Error loading custom themes:', err);
+    }
+  }, []);
+
   // Load theme from database on mount
   useEffect(() => {
     const loadTheme = async () => {
       try {
+        // First load custom themes
+        await refreshCustomThemes();
+
         const { data, error } = await supabase
           .from('site_settings')
           .select('value')
@@ -71,7 +105,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (!error && data?.value) {
-          const theme = getThemeById(data.value);
+          // Check predefined themes first
+          let theme = getThemeById(data.value);
+          
+          // If not found in predefined, check custom themes
+          if (!theme) {
+            const { data: customData } = await supabase
+              .from('site_settings')
+              .select('value')
+              .eq('key', `custom_theme_${data.value}`)
+              .maybeSingle();
+            
+            if (customData?.value) {
+              try {
+                theme = JSON.parse(customData.value) as Theme;
+              } catch (e) {
+                console.error('Error parsing saved custom theme:', e);
+              }
+            }
+          }
+          
           if (theme) {
             setCurrentTheme(theme);
           }
@@ -84,10 +137,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadTheme();
-  }, []);
+  }, [refreshCustomThemes]);
 
   const setTheme = useCallback(async (themeId: string) => {
-    const theme = getThemeById(themeId);
+    // Check predefined themes first
+    let theme = getThemeById(themeId);
+    
+    // If not found, check custom themes
+    if (!theme) {
+      theme = customThemes.find(t => t.id === themeId);
+    }
+    
     if (!theme) return;
 
     setCurrentTheme(theme);
@@ -113,6 +173,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Error saving theme:', err);
     }
+  }, [customThemes]);
+
+  const setCustomTheme = useCallback((theme: Theme) => {
+    setCurrentTheme(theme);
   }, []);
 
   const toggleDarkMode = useCallback(() => {
@@ -124,10 +188,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentTheme,
         setTheme,
+        setCustomTheme,
         themes: predefinedThemes,
+        customThemes,
         isLoading,
         isDarkMode,
         toggleDarkMode,
+        refreshCustomThemes,
       }}
     >
       {children}

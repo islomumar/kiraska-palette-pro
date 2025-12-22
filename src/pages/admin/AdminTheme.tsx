@@ -5,16 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Check, Moon, Sun, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { CustomThemeCreator } from '@/components/admin/CustomThemeCreator';
 
 export default function AdminTheme() {
-  const { currentTheme, setTheme, themes, isDarkMode, toggleDarkMode } = useTheme();
+  const { 
+    currentTheme, 
+    setTheme, 
+    themes, 
+    customThemes, 
+    isDarkMode, 
+    toggleDarkMode,
+    refreshCustomThemes 
+  } = useTheme();
   const { toast } = useToast();
 
   const handleThemeSelect = async (themeId: string) => {
     await setTheme(themeId);
+    const allThemes = [...themes, ...customThemes];
     toast({
       title: "Mavzu o'zgartirildi",
-      description: `"${themes.find(t => t.id === themeId)?.name}" mavzusi qo'llanildi`,
+      description: `"${allThemes.find(t => t.id === themeId)?.name}" mavzusi qo'llanildi`,
     });
   };
 
@@ -42,9 +52,18 @@ export default function AdminTheme() {
           </Button>
         </div>
 
+        {/* Custom Theme Creator */}
+        <CustomThemeCreator
+          customThemes={customThemes}
+          onThemeCreated={refreshCustomThemes}
+          onThemeDeleted={refreshCustomThemes}
+          onThemeSelect={handleThemeSelect}
+          currentThemeId={currentTheme.id}
+        />
+
         <Card>
           <CardHeader>
-            <CardTitle>Rang mavzulari ({themes.length} ta)</CardTitle>
+            <CardTitle>Tayyor mavzular ({themes.length} ta)</CardTitle>
             <CardDescription>
               Tanlangan mavzu sayt va admin panelga darhol qo'llaniladi
             </CardDescription>
@@ -102,7 +121,7 @@ export default function AdminTheme() {
             <CardDescription>{currentTheme.description}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium">Primary</p>
                 <div className="h-12 rounded-lg bg-primary flex items-center justify-center">
@@ -125,6 +144,18 @@ export default function AdminTheme() {
                 <p className="text-sm font-medium">Muted</p>
                 <div className="h-12 rounded-lg bg-muted flex items-center justify-center">
                   <span className="text-xs text-muted-foreground">Muted</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Success</p>
+                <div className="h-12 rounded-lg bg-success flex items-center justify-center">
+                  <span className="text-xs text-success-foreground">Success</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Warning</p>
+                <div className="h-12 rounded-lg bg-warning flex items-center justify-center">
+                  <span className="text-xs text-warning-foreground">Warning</span>
                 </div>
               </div>
             </div>
