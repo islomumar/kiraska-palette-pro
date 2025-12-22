@@ -16,11 +16,13 @@ export function FooterEditable() {
               {settings?.logo_url ? (
                 <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-                  <span className="text-xl font-bold text-primary-foreground">K</span>
-                </div>
+                <>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                    <span className="text-xl font-bold text-primary-foreground">K</span>
+                  </div>
+                  <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
+                </>
               )}
-              <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               <EditableText contentKey="footer_description" fallback="O'zbekistondagi eng katta bo'yoq va lak mahsulotlari do'koni. Sifatli mahsulotlar, qulay narxlar." />
