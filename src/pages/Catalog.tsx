@@ -10,6 +10,7 @@ import { useProducts, formatPrice } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
+import { EditableText } from "@/components/admin/EditableText";
 
 const Catalog = () => {
   const [searchParams] = useSearchParams();
@@ -17,6 +18,13 @@ const Catalog = () => {
   const { getText } = useSiteContent();
   const { isEditMode } = useEditMode();
   const linkPrefix = isEditMode ? '/admin/site-content' : '';
+
+  const renderText = (key: string, fallback: string) => {
+    if (isEditMode) {
+      return <EditableText contentKey={key} fallback={fallback} />;
+    }
+    return getText(key, fallback);
+  };
 
   const { data: products = [], isLoading: productsLoading } = useProducts();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
@@ -72,10 +80,10 @@ const Catalog = () => {
       <section className="bg-primary py-12 md:py-16">
         <div className="container">
           <h1 className="text-3xl font-bold text-primary-foreground md:text-4xl text-center">
-            {getText('nav_catalog', 'Katalog')}
+            {renderText('catalog_page_title', 'Katalog')}
           </h1>
           <p className="mt-3 text-primary-foreground/80 text-center max-w-xl mx-auto">
-            {getText('catalog_page_description', "Bo'yoq, lak, emal, gruntovka va boshqa mahsulotlarni filtrlang")}
+            {renderText('catalog_page_description', "Bo'yoq, lak, emal, gruntovka va boshqa mahsulotlarni filtrlang")}
           </p>
         </div>
       </section>
