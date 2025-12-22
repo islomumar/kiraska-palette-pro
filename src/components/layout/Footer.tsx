@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Phone, Mail, MapPin, Clock, Instagram, Send } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
 import { useCategories } from "@/hooks/useCategories";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { cn } from "@/lib/utils";
 
 export function Footer() {
   const { getText } = useSiteContent();
@@ -12,6 +13,18 @@ export function Footer() {
   const linkPrefix = isEditMode ? '/admin/site-content' : '';
   const { data: categories = [] } = useCategories();
   const { settings } = useSiteSettings();
+  const location = useLocation();
+
+  const isActivePath = (path: string) => {
+    const currentPath = location.pathname.replace('/admin/site-content', '');
+    return currentPath === path || (currentPath === '' && path === '/');
+  };
+
+  const isActiveCategory = (slug: string) => {
+    const currentPath = location.pathname.replace('/admin/site-content', '');
+    const searchParams = new URLSearchParams(location.search);
+    return currentPath === '/catalog' && searchParams.get('category') === slug;
+  };
 
   const renderText = (key: string, fallback: string) => {
     if (isEditMode) {
@@ -65,7 +78,17 @@ export function Footer() {
             <ul className="space-y-2">
               {categories.slice(0, 5).map((category) => (
                 <li key={category.id}>
-                  <Link to={`${linkPrefix}/catalog?category=${category.slug}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{category.name}</Link>
+                  <Link 
+                    to={`${linkPrefix}/catalog?category=${category.slug}`} 
+                    className={cn(
+                      "text-sm transition-colors",
+                      isActiveCategory(category.slug) 
+                        ? "text-primary font-semibold" 
+                        : "text-muted-foreground hover:text-primary"
+                    )}
+                  >
+                    {category.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -76,7 +99,17 @@ export function Footer() {
             <ul className="space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.path}>
-                  <Link to={`${linkPrefix}${link.path}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">{link.name}</Link>
+                  <Link 
+                    to={`${linkPrefix}${link.path}`} 
+                    className={cn(
+                      "text-sm transition-colors",
+                      isActivePath(link.path) 
+                        ? "text-primary font-semibold" 
+                        : "text-muted-foreground hover:text-primary"
+                    )}
+                  >
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
