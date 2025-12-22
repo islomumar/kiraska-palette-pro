@@ -15,6 +15,7 @@ const pageLinks = [
   { path: '/admin/site-content', label: 'Bosh sahifa' },
   { path: '/admin/site-content/catalog', label: 'Katalog' },
   { path: '/admin/site-content/products', label: 'Mahsulotlar' },
+  { path: '/admin/site-content/products/lak-glossy-premium', label: 'Mahsulot (namuna)' },
   { path: '/admin/site-content/about', label: 'Biz haqimizda' },
   { path: '/admin/site-content/contact', label: 'Aloqa' },
 ];
