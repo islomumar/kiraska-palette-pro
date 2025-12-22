@@ -1,4 +1,3 @@
-import { Layout } from "@/components/layout/Layout";
 import { Check, Users, Award, Clock, ThumbsUp, Target, Shield, Truck } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
@@ -63,7 +62,7 @@ const About = () => {
   ];
 
   return (
-    <Layout>
+    <>
       {/* Hero */}
       <section className="bg-primary py-16 md:py-24">
         <div className="container">
@@ -208,7 +207,7 @@ const About = () => {
           </div>
         </div>
       </section>
-    </Layout>
+    </>
   );
 };
 
