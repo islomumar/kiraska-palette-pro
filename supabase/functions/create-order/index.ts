@@ -109,9 +109,19 @@ async function validateAndCalculatePrices(
   return { validatedProducts, calculatedTotal, errors };
 }
 
-async function sendTelegramNotification(order: any, products: ValidatedProduct[]) {
-  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-  const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
+async function sendTelegramNotification(supabase: any, order: any, products: ValidatedProduct[]) {
+  // First try to get from site_settings (admin panel)
+  const { data: telegramSettings } = await supabase
+    .from('site_settings')
+    .select('key, value')
+    .in('key', ['telegram_bot_token', 'telegram_chat_id']);
+
+  let botToken = telegramSettings?.find((s: any) => s.key === 'telegram_bot_token')?.value;
+  let chatId = telegramSettings?.find((s: any) => s.key === 'telegram_chat_id')?.value;
+
+  // Fall back to environment variables if not set in admin
+  if (!botToken) botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+  if (!chatId) chatId = Deno.env.get('TELEGRAM_CHAT_ID');
 
   if (!botToken || !chatId) {
     console.log('Telegram credentials not configured, skipping notification');
@@ -301,7 +311,7 @@ serve(async (req) => {
     await updateProductStock(supabase, validatedProducts);
 
     // Send Telegram notification
-    await sendTelegramNotification(order, validatedProducts);
+    await sendTelegramNotification(supabase, order, validatedProducts);
 
     return new Response(
       JSON.stringify({ 

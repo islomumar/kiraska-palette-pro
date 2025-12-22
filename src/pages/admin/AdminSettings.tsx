@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe, MapPin, ExternalLink, Copy, Check } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe, MapPin, ExternalLink, Copy, Check, Send, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +15,8 @@ interface SiteSettings {
   facebook_pixel_id: string | null;
   facebook_domain_verification: string | null;
   sitemap_domain: string | null;
+  telegram_bot_token: string | null;
+  telegram_chat_id: string | null;
 }
 
 export default function AdminSettings() {
@@ -24,7 +26,11 @@ export default function AdminSettings() {
     facebook_pixel_id: null,
     facebook_domain_verification: null,
     sitemap_domain: null,
+    telegram_bot_token: null,
+    telegram_chat_id: null,
   });
+  const [showBotToken, setShowBotToken] = useState(false);
+  const [isTelegramTesting, setIsTelegramTesting] = useState(false);
   const [sitemapCopied, setSitemapCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +61,8 @@ export default function AdminSettings() {
         facebook_pixel_id: null,
         facebook_domain_verification: null,
         sitemap_domain: null,
+        telegram_bot_token: null,
+        telegram_chat_id: null,
       };
       data?.forEach((item) => {
         if (item.key === 'logo_url') settingsMap.logo_url = item.value;
@@ -62,6 +70,8 @@ export default function AdminSettings() {
         if (item.key === 'facebook_pixel_id') settingsMap.facebook_pixel_id = item.value;
         if (item.key === 'facebook_domain_verification') settingsMap.facebook_domain_verification = item.value;
         if (item.key === 'sitemap_domain') settingsMap.sitemap_domain = item.value;
+        if (item.key === 'telegram_bot_token') settingsMap.telegram_bot_token = item.value;
+        if (item.key === 'telegram_chat_id') settingsMap.telegram_chat_id = item.value;
       });
       setSettings(settingsMap);
     }
@@ -277,6 +287,91 @@ export default function AdminSettings() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTelegramSave = async () => {
+    setIsSaving(true);
+    try {
+      // Upsert telegram_bot_token
+      const { error: tokenError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'telegram_bot_token', 
+          value: settings.telegram_bot_token 
+        }, { onConflict: 'key' });
+
+      if (tokenError) throw tokenError;
+
+      // Upsert telegram_chat_id
+      const { error: chatError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'telegram_chat_id', 
+          value: settings.telegram_chat_id 
+        }, { onConflict: 'key' });
+
+      if (chatError) throw chatError;
+
+      toast({
+        title: 'Muvaffaqiyat',
+        description: 'Telegram sozlamalari saqlandi',
+      });
+    } catch (error) {
+      console.error('Telegram save error:', error);
+      toast({
+        title: 'Xatolik',
+        description: 'Saqlashda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTelegramTest = async () => {
+    if (!settings.telegram_bot_token || !settings.telegram_chat_id) {
+      toast({
+        title: 'Xatolik',
+        description: 'Avval Bot Token va Chat ID kiriting',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsTelegramTesting(true);
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${settings.telegram_bot_token}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: settings.telegram_chat_id,
+            text: '✅ *Test xabar*\n\nTelegram integratsiyasi muvaffaqiyatli sozlandi!',
+            parse_mode: 'Markdown',
+          }),
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: 'Muvaffaqiyat',
+          description: 'Test xabar Telegramga yuborildi',
+        });
+      } else {
+        const error = await response.json();
+        throw new Error(error.description || 'Xatolik');
+      }
+    } catch (error: any) {
+      console.error('Telegram test error:', error);
+      toast({
+        title: 'Xatolik',
+        description: error.message || 'Telegram ga ulanishda xatolik',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTelegramTesting(false);
     }
   };
 
@@ -589,6 +684,118 @@ export default function AdminSettings() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Telegram Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-[#0088cc]" />
+              Telegram sozlamalari
+            </CardTitle>
+            <CardDescription>
+              Yangi buyurtmalar haqida Telegram orqali xabar olish
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Bot Token */}
+              <div className="space-y-2">
+                <Label htmlFor="telegram_bot_token" className="flex items-center gap-2">
+                  Bot Token
+                </Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="telegram_bot_token"
+                      type={showBotToken ? 'text' : 'password'}
+                      value={settings.telegram_bot_token || ''}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, telegram_bot_token: e.target.value }))}
+                      placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => setShowBotToken(!showBotToken)}
+                    >
+                      {showBotToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  @BotFather dan olingan bot token
+                </p>
+              </div>
+
+              {/* Chat ID */}
+              <div className="space-y-2">
+                <Label htmlFor="telegram_chat_id" className="flex items-center gap-2">
+                  Chat ID
+                </Label>
+                <Input
+                  id="telegram_chat_id"
+                  value={settings.telegram_chat_id || ''}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, telegram_chat_id: e.target.value }))}
+                  placeholder="-1001234567890"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Guruh yoki kanal ID raqami
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                onClick={handleTelegramSave}
+                disabled={isSaving}
+                className="flex-1 sm:flex-none"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saqlanmoqda...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Saqlash
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleTelegramTest}
+                disabled={isTelegramTesting || !settings.telegram_bot_token || !settings.telegram_chat_id}
+              >
+                {isTelegramTesting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Yuborilmoqda...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Test xabar yuborish
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Instructions */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+              <h4 className="font-medium text-sm">Telegram bot yaratish qo'llanmasi:</h4>
+              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Telegram da @BotFather ni oching</li>
+                <li>/newbot buyrug'ini yuboring va bot nomini kiriting</li>
+                <li>Olingan tokenni yuqoridagi maydonga kiriting</li>
+                <li>Botni guruhga qo'shing va @getidsbot orqali Chat ID ni oling</li>
+                <li>"Test xabar yuborish" tugmasi bilan tekshiring</li>
+              </ol>
+            </div>
           </CardContent>
         </Card>
 
