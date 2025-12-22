@@ -92,8 +92,12 @@ export default function AdminLogin() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm p-4">
       <Card className="w-full max-w-md shadow-card-hover">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <Lock className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto mb-4">
+            <img 
+              src="/logo.png" 
+              alt="Kiraska.uz" 
+              className="h-14 w-auto mx-auto"
+            />
           </div>
           <CardTitle className="text-2xl">Admin Panel</CardTitle>
           <CardDescription>
