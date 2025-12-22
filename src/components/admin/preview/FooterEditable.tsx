@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import { Phone, Mail, MapPin, Clock, Instagram, Send } from "lucide-react";
 import { EditableText } from '../EditableText';
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function FooterEditable() {
+  const { settings } = useSiteSettings();
+
   return (
     <footer className="border-t border-border bg-card">
       <div className="container py-12 md:py-16">
@@ -10,9 +13,13 @@ export function FooterEditable() {
           {/* Company Info */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-                <span className="text-xl font-bold text-primary-foreground">K</span>
-              </div>
+              {settings?.logo_url ? (
+                <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                  <span className="text-xl font-bold text-primary-foreground">K</span>
+                </div>
+              )}
               <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">

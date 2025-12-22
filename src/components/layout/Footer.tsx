@@ -4,12 +4,14 @@ import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
 import { useCategories } from "@/hooks/useCategories";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function Footer() {
   const { getText } = useSiteContent();
   const { isEditMode } = useEditMode();
   const linkPrefix = isEditMode ? '/admin/site-content' : '';
   const { data: categories = [] } = useCategories();
+  const { settings } = useSiteSettings();
 
   const renderText = (key: string, fallback: string) => {
     if (isEditMode) {
@@ -34,9 +36,13 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
             <Link to={`${linkPrefix}/`} className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-                <span className="text-xl font-bold text-primary-foreground">K</span>
-              </div>
+              {settings?.logo_url ? (
+                <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                  <span className="text-xl font-bold text-primary-foreground">K</span>
+                </div>
+              )}
               <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
