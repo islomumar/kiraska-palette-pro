@@ -84,7 +84,9 @@ export function HeroBanner() {
                 <span className="block text-sm font-semibold text-foreground">
                   {renderText('hero_badge_delivery', 'Bepul yetkazish')}
                 </span>
-                <span className="text-xs text-muted-foreground">Toshkent bo'ylab</span>
+                <span className="text-xs text-muted-foreground">
+                  {renderText('hero_badge_delivery_desc', "Toshkent bo'ylab")}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -95,7 +97,9 @@ export function HeroBanner() {
                 <span className="block text-sm font-semibold text-foreground">
                   {renderText('hero_badge_original', 'Original')}
                 </span>
-                <span className="text-xs text-muted-foreground">Sifat kafolati</span>
+                <span className="text-xs text-muted-foreground">
+                  {renderText('hero_badge_original_desc', 'Sifat kafolati')}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -106,7 +110,9 @@ export function HeroBanner() {
                 <span className="block text-sm font-semibold text-foreground">
                   {renderText('hero_badge_colors', '1000+ ranglar')}
                 </span>
-                <span className="text-xs text-muted-foreground">Keng tanlov</span>
+                <span className="text-xs text-muted-foreground">
+                  {renderText('hero_badge_colors_desc', 'Keng tanlov')}
+                </span>
               </div>
             </div>
           </div>
