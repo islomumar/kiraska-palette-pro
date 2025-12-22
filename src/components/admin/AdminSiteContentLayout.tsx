@@ -3,20 +3,34 @@ import { useEditMode } from '@/contexts/EditModeContext';
 import { EditContentModal } from './EditContentModal';
 import { Badge } from '@/components/ui/badge';
 import { Eye, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface AdminSiteContentLayoutProps {
   children: ReactNode;
 }
 
+const pageLinks = [
+  { path: '/admin/site-content', label: 'Bosh sahifa' },
+  { path: '/admin/site-content/catalog', label: 'Katalog' },
+  { path: '/admin/site-content/products', label: 'Mahsulotlar' },
+  { path: '/admin/site-content/about', label: 'Biz haqimizda' },
+  { path: '/admin/site-content/contact', label: 'Aloqa' },
+];
+
 export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps) {
   const { setEditMode } = useEditMode();
+  const location = useLocation();
 
   useEffect(() => {
     setEditMode(true);
     return () => setEditMode(false);
   }, [setEditMode]);
+
+  const isActivePath = (path: string) => {
+    return location.pathname === path;
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -40,8 +54,30 @@ export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps
         </div>
       </div>
 
+      {/* Page Navigation */}
+      <div className="bg-card/50 border-b border-border">
+        <div className="container">
+          <nav className="flex items-center gap-1 py-2 overflow-x-auto">
+            {pageLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
+                  isActivePath(link.path)
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       {/* Site Preview */}
-      <div className="min-h-[calc(100vh-56px)]">
+      <div className="min-h-[calc(100vh-112px)]">
         {children}
       </div>
 

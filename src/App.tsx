@@ -104,11 +104,11 @@ const App = () => (
                         <Route path="/admin/languages" element={<AdminLanguages />} />
                         <Route path="/admin/settings" element={<AdminSettings />} />
                         <Route path="/admin/theme" element={<AdminTheme />} />
-                        {/* Admin Site Content with nested routes */}
+                        {/* Admin Site Content with nested routes - full page editing */}
                         <Route path="/admin/site-content" element={<AdminSiteContentLayout><Index /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/catalog" element={<AdminSiteContentLayout><Catalog /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/products" element={<AdminSiteContentLayout><Products /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/products/:id" element={<AdminSiteContentLayout><ProductDetail /></AdminSiteContentLayout>} />
-                        <Route path="/admin/site-content/catalog" element={<AdminSiteContentLayout><Catalog /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/about" element={<AdminSiteContentLayout><About /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/contact" element={<AdminSiteContentLayout><Contact /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/cart" element={<AdminSiteContentLayout><Cart /></AdminSiteContentLayout>} />
