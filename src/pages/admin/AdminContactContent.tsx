@@ -1,5 +1,6 @@
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { SiteContentEditor } from '@/components/admin/SiteContentEditor';
+import { MapLocationEditor } from '@/components/admin/MapLocationEditor';
 
 const contactSections = [
   {
@@ -48,6 +49,10 @@ export default function AdminContactContent() {
           </p>
         </div>
 
+        {/* Map Location Editor */}
+        <MapLocationEditor />
+
+        {/* Text Content Editor */}
         <SiteContentEditor sections={contactSections} />
       </div>
     </AdminLayout>

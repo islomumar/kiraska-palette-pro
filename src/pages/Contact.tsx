@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,11 +8,32 @@ import { Phone, Mail, MapPin, Clock, Send, Instagram } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
+import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
   const { toast } = useToast();
   const { getText } = useSiteContent();
   const { isEditMode } = useEditMode();
+  const [mapCoords, setMapCoords] = useState({ lat: '41.2911', lng: '69.2033' });
+
+  useEffect(() => {
+    const loadMapCoords = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .in('key', ['map_latitude', 'map_longitude']);
+
+      if (data) {
+        const coords = { lat: '41.2911', lng: '69.2033' };
+        data.forEach(item => {
+          if (item.key === 'map_latitude' && item.value) coords.lat = item.value;
+          if (item.key === 'map_longitude' && item.value) coords.lng = item.value;
+        });
+        setMapCoords(coords);
+      }
+    };
+    loadMapCoords();
+  }, []);
 
   const renderText = (key: string, fallback: string) => {
     if (isEditMode) {
@@ -90,6 +111,10 @@ const Contact = () => {
     
     setFormData({ name: "", phone: "+998", message: "" });
     setIsSubmitting(false);
+  };
+
+  const getMapEmbedUrl = () => {
+    return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2997!2d${mapCoords.lng}!3d${mapCoords.lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1suz!2s!4v1`;
   };
 
   return (
@@ -242,7 +267,7 @@ const Contact = () => {
             </h2>
             <div className="aspect-[21/9] rounded-3xl overflow-hidden bg-secondary">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2997.1234567890123!2d69.2033!3d41.2911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDE3JzI4LjAiTiA2OcKwMTInMTEuOSJF!5e0!3m2!1suz!2s!4v1234567890123"
+                src={getMapEmbedUrl()}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
