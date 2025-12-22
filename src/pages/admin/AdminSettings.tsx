@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe, MapPin, ExternalLink, Copy, Check, Send, Eye, EyeOff } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe, MapPin, ExternalLink, Copy, Check, Send, Eye, EyeOff, Download, Database, Package, ShoppingCart, FolderTree } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 interface SiteSettings {
   logo_url: string | null;
@@ -31,6 +32,7 @@ export default function AdminSettings() {
   });
   const [showBotToken, setShowBotToken] = useState(false);
   const [isTelegramTesting, setIsTelegramTesting] = useState(false);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
   const [sitemapCopied, setSitemapCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -372,6 +374,118 @@ export default function AdminSettings() {
       });
     } finally {
       setIsTelegramTesting(false);
+    }
+  };
+
+  const exportToExcel = async (tableName: 'products' | 'orders' | 'categories') => {
+    setIsExporting(tableName);
+    try {
+      let data: any[] = [];
+      let fileName = '';
+
+      if (tableName === 'products') {
+        const { data: products, error } = await supabase
+          .from('products')
+          .select('*, categories(name)')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        data = (products || []).map((p: any) => ({
+          'Nomi': p.name,
+          'Kategoriya': p.categories?.name || '',
+          'Narxi': p.price,
+          'Eski narxi': p.old_price || '',
+          'Brend': p.brand || '',
+          'Hajmi': p.volume || '',
+          'O\'lchami': p.size || '',
+          'Rangi': p.color_name || '',
+          'Omborda': p.stock_quantity || 0,
+          'Faol': p.is_active ? 'Ha' : 'Yo\'q',
+          'Bestseller': p.is_bestseller ? 'Ha' : 'Yo\'q',
+          'Yaratilgan': new Date(p.created_at).toLocaleDateString('uz-UZ'),
+        }));
+        fileName = `mahsulotlar_${new Date().toISOString().split('T')[0]}.xlsx`;
+      } else if (tableName === 'orders') {
+        const { data: orders, error } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        data = (orders || []).map((o: any) => ({
+          'ID': o.id.slice(0, 8),
+          'Mijoz': o.customer_name,
+          'Telefon': o.phone,
+          'Manzil': o.address || '',
+          'Izoh': o.notes || '',
+          'Mahsulotlar': Array.isArray(o.products) 
+            ? o.products.map((p: any) => `${p.name} x${p.quantity}`).join(', ')
+            : '',
+          'Jami summa': o.total_amount,
+          'Status': o.status === 'pending' ? 'Kutilmoqda' 
+            : o.status === 'confirmed' ? 'Tasdiqlangan'
+            : o.status === 'delivered' ? 'Yetkazildi'
+            : o.status === 'cancelled' ? 'Bekor qilindi'
+            : o.status,
+          'Sana': new Date(o.created_at).toLocaleDateString('uz-UZ'),
+        }));
+        fileName = `buyurtmalar_${new Date().toISOString().split('T')[0]}.xlsx`;
+      } else if (tableName === 'categories') {
+        const { data: categories, error } = await supabase
+          .from('categories')
+          .select('*')
+          .order('position', { ascending: true });
+
+        if (error) throw error;
+
+        data = (categories || []).map((c: any) => ({
+          'Nomi': c.name,
+          'Slug': c.slug,
+          'Tavsifi': c.description || '',
+          'Pozitsiya': c.position || 0,
+          'Faol': c.is_active ? 'Ha' : 'Yo\'q',
+          'Yaratilgan': new Date(c.created_at).toLocaleDateString('uz-UZ'),
+        }));
+        fileName = `kategoriyalar_${new Date().toISOString().split('T')[0]}.xlsx`;
+      }
+
+      if (data.length === 0) {
+        toast({
+          title: 'Ma\'lumot yo\'q',
+          description: 'Export qilish uchun ma\'lumot topilmadi',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Set column widths
+      const colWidths = Object.keys(data[0]).map(key => ({
+        wch: Math.max(key.length, 15)
+      }));
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, tableName);
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: 'Muvaffaqiyat',
+        description: `${data.length} ta yozuv export qilindi`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: 'Xatolik',
+        description: 'Ma\'lumotlarni export qilishda xatolik',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(null);
     }
   };
 
@@ -882,6 +996,74 @@ export default function AdminSettings() {
                 </ol>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Export */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-blue-600" />
+              Ma'lumotlarni export qilish
+            </CardTitle>
+            <CardDescription>
+              Mahsulotlar, buyurtmalar va kategoriyalarni Excel formatda yuklab olish
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {/* Products Export */}
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => exportToExcel('products')}
+                disabled={isExporting !== null}
+              >
+                {isExporting === 'products' ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <Package className="h-6 w-6 text-primary" />
+                )}
+                <span className="font-medium">Mahsulotlar</span>
+                <span className="text-xs text-muted-foreground">Excel formatda</span>
+              </Button>
+
+              {/* Orders Export */}
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => exportToExcel('orders')}
+                disabled={isExporting !== null}
+              >
+                {isExporting === 'orders' ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-6 w-6 text-green-600" />
+                )}
+                <span className="font-medium">Buyurtmalar</span>
+                <span className="text-xs text-muted-foreground">Excel formatda</span>
+              </Button>
+
+              {/* Categories Export */}
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => exportToExcel('categories')}
+                disabled={isExporting !== null}
+              >
+                {isExporting === 'categories' ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <FolderTree className="h-6 w-6 text-orange-600" />
+                )}
+                <span className="font-medium">Kategoriyalar</span>
+                <span className="text-xs text-muted-foreground">Excel formatda</span>
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Barcha ma'lumotlar .xlsx formatda yuklab olinadi va Microsoft Excel, Google Sheets yoki boshqa dasturlarda ochish mumkin.
+            </p>
           </CardContent>
         </Card>
       </div>
