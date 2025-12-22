@@ -2,36 +2,47 @@ import { Link } from "react-router-dom";
 import { ShoppingCart, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditableText } from '../EditableText';
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function NavbarEditable() {
+  const { settings } = useSiteSettings();
+
+  const navLinks = [
+    { key: 'nav_home', fallback: 'Bosh sahifa', path: "/" },
+    { key: 'nav_catalog', fallback: 'Katalog', path: "/catalog" },
+    { key: 'nav_products', fallback: 'Mahsulotlar', path: "/products" },
+    { key: 'nav_about', fallback: 'Biz haqimizda', path: "/about" },
+    { key: 'nav_contact', fallback: 'Aloqa', path: "/contact" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 shadow-sm">
       <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <span className="text-xl font-bold text-primary-foreground">K</span>
-          </div>
-          <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
+        <Link to="/admin/site-content" className="flex items-center gap-2">
+          {settings?.logo_url ? (
+            <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
+          ) : (
+            <>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                <span className="text-xl font-bold text-primary-foreground">K</span>
+              </div>
+              <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
+            </>
+          )}
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation - with links to edit other pages */}
         <nav className="hidden items-center gap-1 lg:flex">
-          <span className="px-4 py-2 text-sm font-medium text-muted-foreground">
-            <EditableText contentKey="nav_home" fallback="Bosh sahifa" />
-          </span>
-          <span className="px-4 py-2 text-sm font-medium text-muted-foreground">
-            <EditableText contentKey="nav_catalog" fallback="Katalog" />
-          </span>
-          <span className="px-4 py-2 text-sm font-medium text-muted-foreground">
-            <EditableText contentKey="nav_products" fallback="Mahsulotlar" />
-          </span>
-          <span className="px-4 py-2 text-sm font-medium text-muted-foreground">
-            <EditableText contentKey="nav_about" fallback="Biz haqimizda" />
-          </span>
-          <span className="px-4 py-2 text-sm font-medium text-muted-foreground">
-            <EditableText contentKey="nav_contact" fallback="Aloqa" />
-          </span>
+          {navLinks.map((link) => (
+            <Link 
+              key={link.key}
+              to={`/admin/site-content${link.path}`}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary hover:bg-secondary rounded-lg transition-colors"
+            >
+              <EditableText contentKey={link.key} fallback={link.fallback} />
+            </Link>
+          ))}
         </nav>
 
         {/* Desktop Actions */}
