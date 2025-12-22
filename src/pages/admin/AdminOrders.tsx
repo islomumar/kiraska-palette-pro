@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Table,
   TableBody,
@@ -21,9 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Search, Loader2, Lock } from 'lucide-react';
-import { format } from 'date-fns';
+import { Eye, Search, Loader2, Lock, CalendarIcon, X } from 'lucide-react';
+import { format, isToday, isSameDay, startOfDay } from 'date-fns';
+import { uz } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
 
@@ -63,6 +71,7 @@ const statusColors: Record<OrderStatus, string> = {
 export default function AdminOrders() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const { userRole } = useAuth();
 
   const isManager = userRole === 'manager';
@@ -103,24 +112,42 @@ export default function AdminOrders() {
   const orders = canViewFullData ? fullOrders : limitedOrders;
   const isLoading = canViewFullData ? isLoadingFull : isLoadingLimited;
 
-  const filteredOrders = orders?.filter((order) => {
-    let matchesSearch = true;
-    
-    if (searchQuery) {
-      if (canViewFullData && order.customer_name && order.phone) {
-        matchesSearch =
-          order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.phone.includes(searchQuery) ||
-          order.id.toLowerCase().includes(searchQuery.toLowerCase());
-      } else {
-        matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter by date - if no date selected, show today's orders
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+
+    const filterDate = selectedDate || new Date(); // Default to today
+
+    return orders.filter((order) => {
+      // Date filter
+      const orderDate = new Date(order.created_at);
+      const matchesDate = isSameDay(orderDate, filterDate);
+
+      // Search filter
+      let matchesSearch = true;
+      if (searchQuery) {
+        if (canViewFullData && order.customer_name && order.phone) {
+          matchesSearch =
+            order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.phone.includes(searchQuery);
+        } else {
+          matchesSearch = false;
+        }
       }
-    }
 
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesDate && matchesSearch && matchesStatus;
+    });
+  }, [orders, selectedDate, searchQuery, statusFilter, canViewFullData]);
+
+  const clearDateFilter = () => {
+    setSelectedDate(undefined);
+  };
+
+  const displayDate = selectedDate || new Date();
+  const isShowingToday = !selectedDate || isToday(selectedDate);
 
   return (
     <AdminLayout>
@@ -138,20 +165,59 @@ export default function AdminOrders() {
           <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
             <Lock className="h-5 w-5 text-yellow-600" />
             <p className="text-sm text-yellow-700 dark:text-yellow-400">
-              Menejer sifatida siz faqat buyurtma ID, status va summani ko'rishingiz mumkin. 
+              Menejer sifatida siz faqat buyurtma status va summani ko'rishingiz mumkin. 
               Mijoz ma'lumotlari himoyalangan.
             </p>
           </div>
         )}
 
         {/* Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          {/* Date Filter */}
+          <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[200px] justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {isShowingToday 
+                    ? "Bugun" 
+                    : format(displayDate, "d MMMM yyyy", { locale: uz })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            {selectedDate && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearDateFilter}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={canViewFullData 
-                ? "ID, ism yoki telefon bo'yicha qidirish..." 
-                : "ID bo'yicha qidirish..."}
+                ? "Ism yoki telefon bo'yicha qidirish..." 
+                : "Qidirish..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -171,6 +237,11 @@ export default function AdminOrders() {
           </Select>
         </div>
 
+        {/* Orders summary */}
+        <div className="text-sm text-muted-foreground">
+          {isShowingToday ? "Bugungi" : format(displayDate, "d MMMM", { locale: uz })} buyurtmalar: {filteredOrders.length} ta
+        </div>
+
         {/* Orders Table */}
         <div className="rounded-lg border border-border bg-card">
           {isLoading ? (
@@ -181,20 +252,20 @@ export default function AdminOrders() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>#</TableHead>
                   {canViewFullData && <TableHead>Mijoz</TableHead>}
                   {canViewFullData && <TableHead>Telefon</TableHead>}
                   <TableHead>Summa</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Sana</TableHead>
+                  <TableHead>Vaqt</TableHead>
                   <TableHead className="text-right">Amallar</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
+                {filteredOrders.map((order, index) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-mono text-xs">
-                      {order.id.slice(0, 8)}...
+                    <TableCell className="font-medium">
+                      {index + 1}
                     </TableCell>
                     {canViewFullData && (
                       <TableCell className="font-medium">{order.customer_name}</TableCell>
@@ -212,7 +283,7 @@ export default function AdminOrders() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(order.created_at), 'dd.MM.yyyy HH:mm')}
+                      {format(new Date(order.created_at), 'HH:mm')}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" asChild>
@@ -228,9 +299,9 @@ export default function AdminOrders() {
             </Table>
           ) : (
             <div className="py-12 text-center text-muted-foreground">
-              {searchQuery || statusFilter !== 'all'
-                ? 'Buyurtmalar topilmadi'
-                : 'Hali buyurtmalar yo\'q'}
+              {isShowingToday 
+                ? 'Bugun buyurtmalar yo\'q' 
+                : `${format(displayDate, "d MMMM", { locale: uz })} kuni buyurtmalar yo'q`}
             </div>
           )}
         </div>
