@@ -29,6 +29,7 @@ import { formatPrice } from '@/data/products';
 import { useToast } from '@/hooks/use-toast';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { ProductFilters, ProductFiltersState, defaultProductFilters } from '@/components/admin/ProductFilters';
+import { SEOStatusBadge } from '@/components/admin/SEOStatusBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { jsonToMultiLang, MultiLangValue, getLocalizedText } from '@/components/admin/MultiLangInput';
 
@@ -453,6 +454,7 @@ export default function AdminProducts() {
                         <TableHead>Kategoriya</TableHead>
                         <TableHead>Narxi</TableHead>
                         <TableHead className="text-center">Tarjima</TableHead>
+                        <TableHead className="text-center">SEO</TableHead>
                         <TableHead>Faol</TableHead>
                         <TableHead>Holati</TableHead>
                         <TableHead className="text-right">Amallar</TableHead>
@@ -504,6 +506,13 @@ export default function AdminProducts() {
                               <Badge variant={translationStatus.variant}>
                                 {translationStatus.label}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <SEOStatusBadge
+                                seoTitle={product.seo_title_ml}
+                                seoDescription={product.seo_description_ml}
+                                currentLanguage={currentLanguage}
+                              />
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+# Allow all search engine crawlers
 User-agent: Googlebot
 Allow: /
 
@@ -12,3 +13,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Disallow admin routes
+Disallow: /admin
+Disallow: /admin/
+
+# Sitemap location
+Sitemap: https://kiraska.uz/sitemap.xml

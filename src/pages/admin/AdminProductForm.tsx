@@ -21,6 +21,7 @@ import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { MultiLangValue, jsonToMultiLang } from '@/components/admin/MultiLangInput';
 import { GlobalLangTabs } from '@/components/admin/GlobalLangTabs';
 import { SingleLangInput } from '@/components/admin/SingleLangInput';
+import { SEOFieldsCard } from '@/components/admin/SEOFieldsCard';
 import { Language } from '@/contexts/LanguageContext';
 import { Json } from '@/integrations/supabase/types';
 
@@ -49,6 +50,12 @@ interface ProductFormData {
   low_stock_threshold: number;
   size: string | null;
   colors: string[] | null;
+  // SEO fields
+  seo_title_ml: MultiLangValue;
+  seo_description_ml: MultiLangValue;
+  seo_keywords_ml: MultiLangValue;
+  seo_image_url: string | null;
+  canonical_url: string | null;
 }
 
 const volumeOptions = ['1L', '3L', '5L', '10L', '15L', '20L'];
@@ -89,6 +96,11 @@ export default function AdminProductForm() {
     low_stock_threshold: 5,
     size: '',
     colors: [],
+    seo_title_ml: {},
+    seo_description_ml: {},
+    seo_keywords_ml: {},
+    seo_image_url: null,
+    canonical_url: null,
   });
 
   useEffect(() => {
@@ -141,6 +153,11 @@ export default function AdminProductForm() {
             low_stock_threshold: data.low_stock_threshold ?? 5,
             size: data.size || '',
             colors: Array.isArray(data.colors) ? data.colors as string[] : [],
+            seo_title_ml: jsonToMultiLang(data.seo_title_ml) || {},
+            seo_description_ml: jsonToMultiLang(data.seo_description_ml) || {},
+            seo_keywords_ml: jsonToMultiLang(data.seo_keywords_ml) || {},
+            seo_image_url: data.seo_image_url || null,
+            canonical_url: data.canonical_url || null,
           });
         }
         setIsLoading(false);
@@ -149,15 +166,6 @@ export default function AdminProductForm() {
       fetchProduct();
     }
   }, [id, isEditing, navigate, toast]);
-
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
 
   const handleNameChange = (value: MultiLangValue) => {
     setFormData((prev) => ({
@@ -235,7 +243,6 @@ export default function AdminProductForm() {
     e.preventDefault();
     setErrors({});
 
-    // Validate required fields
     if (!formData.name_ml.uz) {
       setErrors({ name: t('hint.nameRequired') });
       return;
@@ -274,6 +281,11 @@ export default function AdminProductForm() {
       low_stock_threshold: formData.low_stock_threshold,
       size: formData.size || null,
       colors: formData.colors || [],
+      seo_title_ml: formData.seo_title_ml as Json,
+      seo_description_ml: formData.seo_description_ml as Json,
+      seo_keywords_ml: formData.seo_keywords_ml as Json,
+      seo_image_url: formData.seo_image_url || null,
+      canonical_url: formData.canonical_url || null,
     };
 
     let error;
@@ -486,7 +498,6 @@ export default function AdminProductForm() {
                     value={formData.stock_quantity}
                     onChange={(value) => handleStockQuantityChange(value)}
                   />
-                  {errors.stock_quantity && <p className="text-sm text-destructive">{errors.stock_quantity}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -684,6 +695,26 @@ export default function AdminProductForm() {
                 />
               </CardContent>
             </Card>
+
+            {/* SEO Settings */}
+            <div className="md:col-span-2">
+              <SEOFieldsCard
+                seoTitle={formData.seo_title_ml}
+                seoDescription={formData.seo_description_ml}
+                seoKeywords={formData.seo_keywords_ml}
+                seoImageUrl={formData.seo_image_url || ''}
+                canonicalUrl={formData.canonical_url || ''}
+                slug={formData.slug}
+                activeLanguage={formLanguage}
+                onSeoTitleChange={(value) => setFormData((prev) => ({ ...prev, seo_title_ml: value }))}
+                onSeoDescriptionChange={(value) => setFormData((prev) => ({ ...prev, seo_description_ml: value }))}
+                onSeoKeywordsChange={(value) => setFormData((prev) => ({ ...prev, seo_keywords_ml: value }))}
+                onSeoImageUrlChange={(value) => setFormData((prev) => ({ ...prev, seo_image_url: value || null }))}
+                onCanonicalUrlChange={(value) => setFormData((prev) => ({ ...prev, canonical_url: value || null }))}
+                urlPrefix="/product"
+                showCanonical={true}
+              />
+            </div>
           </div>
 
           {/* Submit */}

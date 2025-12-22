@@ -45,6 +45,7 @@ import { SingleLangInput } from '@/components/admin/SingleLangInput';
 import { Json } from '@/integrations/supabase/types';
 import { AdminPagination } from '@/components/admin/AdminPagination';
 import { CategoryFilters, CategoryFiltersState, defaultFilters, SortOption } from '@/components/admin/CategoryFilters';
+import { SEOStatusBadge } from '@/components/admin/SEOStatusBadge';
 
 interface CategoryWithMeta {
   id: string;
@@ -555,6 +556,7 @@ export default function AdminCategories() {
                         <TableHead>{t('form.slug')}</TableHead>
                         <TableHead className="text-center">Mahsulotlar</TableHead>
                         <TableHead className="text-center">Tarjima</TableHead>
+                        <TableHead className="text-center">SEO</TableHead>
                         <TableHead>{t('common.status')}</TableHead>
                         <TableHead className="text-right">{t('common.actions')}</TableHead>
                       </TableRow>
@@ -595,6 +597,13 @@ export default function AdminCategories() {
                               <Badge variant={translationStatus.variant}>
                                 {translationStatus.label}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <SEOStatusBadge
+                                seoTitle={category.seo_title_ml}
+                                seoDescription={category.seo_description_ml}
+                                currentLanguage={currentLanguage}
+                              />
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
