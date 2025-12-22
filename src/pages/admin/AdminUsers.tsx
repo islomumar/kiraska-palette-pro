@@ -86,11 +86,22 @@ export default function AdminUsers() {
 
   const fetchUsers = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    
+    // Build query based on role - non-superadmin cannot see superadmin users
+    let query = supabase
       .from('user_roles')
       .select('*')
-      .in('role', ['superadmin', 'admin', 'manager'])
       .order('created_at', { ascending: false });
+    
+    if (isSuperAdmin) {
+      // SuperAdmin can see all roles
+      query = query.in('role', ['superadmin', 'admin', 'manager']);
+    } else {
+      // Non-superadmin cannot see superadmin users
+      query = query.in('role', ['admin', 'manager']);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({
@@ -99,8 +110,11 @@ export default function AdminUsers() {
         variant: 'destructive',
       });
     } else {
-      // Get emails from auth (this requires service role, so we'll use user_id for display)
-      setUsers((data as AdminUser[]) || []);
+      // Filter out superadmin from list for non-superadmin users
+      const filteredUsers = isSuperAdmin 
+        ? (data as AdminUser[]) || []
+        : ((data as AdminUser[]) || []).filter(u => u.role !== 'superadmin');
+      setUsers(filteredUsers);
     }
     setIsLoading(false);
   };
@@ -401,7 +415,10 @@ export default function AdminUsers() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="superadmin">Super Admin - To'liq huquq</SelectItem>
+                      {/* Only superadmin can see/assign superadmin role */}
+                      {isSuperAdmin && (
+                        <SelectItem value="superadmin">Super Admin - To'liq huquq</SelectItem>
+                      )}
                       <SelectItem value="admin">Admin - Buyurtmalar, mahsulotlar, ombor</SelectItem>
                       <SelectItem value="manager">Menejer - Faqat buyurtmalar</SelectItem>
                     </SelectContent>
