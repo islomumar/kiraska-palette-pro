@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, FolderTree, Loader2, Upload, Link as LinkIcon, ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderTree, Loader2, Upload, Link as LinkIcon, ImageIcon, Package } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,8 +44,9 @@ import { GlobalLangTabs } from '@/components/admin/GlobalLangTabs';
 import { SingleLangInput } from '@/components/admin/SingleLangInput';
 import { Json } from '@/integrations/supabase/types';
 import { AdminPagination } from '@/components/admin/AdminPagination';
+import { CategoryFilters, CategoryFiltersState, defaultFilters, SortOption } from '@/components/admin/CategoryFilters';
 
-interface Category {
+interface CategoryWithMeta {
   id: string;
   name: string;
   name_ml: MultiLangValue;
@@ -54,6 +55,11 @@ interface Category {
   description_ml: MultiLangValue;
   image_url: string | null;
   is_active: boolean;
+  position: number | null;
+  created_at: string | null;
+  seo_title_ml: MultiLangValue;
+  seo_description_ml: MultiLangValue;
+  product_count: number;
 }
 
 interface CategoryFormData {
@@ -69,10 +75,11 @@ const ITEMS_PER_PAGE = 50;
 export default function AdminCategories() {
   const { currentLanguage } = useLanguage();
   const { t } = useTranslations();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryWithMeta[]>([]);
+  const [activeLanguages, setActiveLanguages] = useState<string[]>(['uz']);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithMeta | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,6 +88,7 @@ export default function AdminCategories() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formLanguage, setFormLanguage] = useState<Language>('uz');
   const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState<CategoryFiltersState>(defaultFilters);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<CategoryFormData>({
@@ -91,27 +99,174 @@ export default function AdminCategories() {
     is_active: true,
   });
 
-  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
+  // Fetch active languages
+  useEffect(() => {
+    const fetchLanguages = async () => {
+      const { data } = await supabase
+        .from('languages')
+        .select('code')
+        .eq('is_active', true);
+      if (data) {
+        setActiveLanguages(data.map((l) => l.code));
+      }
+    };
+    fetchLanguages();
+  }, []);
+
+  // Apply filters and sorting
+  const filteredCategories = useMemo(() => {
+    let result = [...categories];
+
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      result = result.filter((cat) => {
+        const name = getLocalizedText(cat.name_ml, currentLanguage) || cat.name;
+        return name.toLowerCase().includes(searchLower) || cat.slug.toLowerCase().includes(searchLower);
+      });
+    }
+
+    // Status filter
+    if (filters.status !== 'all') {
+      result = result.filter((cat) => 
+        filters.status === 'active' ? cat.is_active : !cat.is_active
+      );
+    }
+
+    // Product count filter
+    if (filters.productCount !== 'all') {
+      result = result.filter((cat) =>
+        filters.productCount === 'with_products' ? cat.product_count > 0 : cat.product_count === 0
+      );
+    }
+
+    // Image filter
+    if (filters.image !== 'all') {
+      result = result.filter((cat) =>
+        filters.image === 'has_image' ? !!cat.image_url : !cat.image_url
+      );
+    }
+
+    // Translation filter
+    if (filters.translation !== 'all') {
+      result = result.filter((cat) => {
+        const translatedLangs = activeLanguages.filter((lang) => {
+          const nameVal = cat.name_ml[lang];
+          return nameVal && nameVal.trim() !== '';
+        });
+        
+        const totalLangs = activeLanguages.length;
+        const translatedCount = translatedLangs.length;
+
+        if (filters.translation === 'fully_translated') {
+          return translatedCount === totalLangs;
+        } else if (filters.translation === 'partially_translated') {
+          return translatedCount > 1 && translatedCount < totalLangs;
+        } else {
+          return translatedCount <= 1;
+        }
+      });
+    }
+
+    // SEO filter
+    if (filters.seo !== 'all') {
+      result = result.filter((cat) => {
+        const hasTitle = cat.seo_title_ml[currentLanguage] && cat.seo_title_ml[currentLanguage].trim() !== '';
+        const hasDesc = cat.seo_description_ml[currentLanguage] && cat.seo_description_ml[currentLanguage].trim() !== '';
+        const seoComplete = hasTitle && hasDesc;
+        
+        return filters.seo === 'seo_complete' ? seoComplete : !seoComplete;
+      });
+    }
+
+    // Date filter
+    if (filters.dateFrom) {
+      result = result.filter((cat) => {
+        if (!cat.created_at) return false;
+        return new Date(cat.created_at) >= filters.dateFrom!;
+      });
+    }
+    if (filters.dateTo) {
+      const endOfDay = new Date(filters.dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      result = result.filter((cat) => {
+        if (!cat.created_at) return false;
+        return new Date(cat.created_at) <= endOfDay;
+      });
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      switch (filters.sort) {
+        case 'position_asc':
+          return (a.position ?? 0) - (b.position ?? 0);
+        case 'position_desc':
+          return (b.position ?? 0) - (a.position ?? 0);
+        case 'name_asc':
+          return (getLocalizedText(a.name_ml, currentLanguage) || a.name).localeCompare(
+            getLocalizedText(b.name_ml, currentLanguage) || b.name
+          );
+        case 'name_desc':
+          return (getLocalizedText(b.name_ml, currentLanguage) || b.name).localeCompare(
+            getLocalizedText(a.name_ml, currentLanguage) || a.name
+          );
+        case 'created_newest':
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        case 'created_oldest':
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [categories, filters, currentLanguage, activeLanguages]);
+
+  const totalPages = Math.ceil(filteredCategories.length / ITEMS_PER_PAGE);
   const paginatedCategories = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return categories.slice(start, start + ITEMS_PER_PAGE);
-  }, [categories, currentPage]);
+    return filteredCategories.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCategories, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    
+    // Fetch categories with product count using a join
+    const { data: categoriesData, error: categoriesError } = await supabase
       .from('categories')
-      .select('id, name, name_ml, slug, description, description_ml, image_url, is_active')
-      .order('name');
+      .select('id, name, name_ml, slug, description, description_ml, image_url, is_active, position, created_at, seo_title_ml, seo_description_ml');
 
-    if (error) {
+    if (categoriesError) {
       toast({
         title: t('common.error'),
         description: t('admin.categories.loadError'),
         variant: 'destructive',
       });
-    } else {
-      setCategories((data || []).map(cat => ({
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch product counts per category
+    const { data: productCounts, error: countError } = await supabase
+      .from('products')
+      .select('category_id');
+
+    const countMap: Record<string, number> = {};
+    if (!countError && productCounts) {
+      productCounts.forEach((p) => {
+        if (p.category_id) {
+          countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+        }
+      });
+    }
+
+    setCategories(
+      (categoriesData || []).map((cat) => ({
         id: cat.id,
         name: cat.name,
         name_ml: jsonToMultiLang(cat.name_ml),
@@ -120,8 +275,13 @@ export default function AdminCategories() {
         description_ml: jsonToMultiLang(cat.description_ml),
         image_url: cat.image_url,
         is_active: cat.is_active,
-      })));
-    }
+        position: cat.position,
+        created_at: cat.created_at,
+        seo_title_ml: jsonToMultiLang(cat.seo_title_ml),
+        seo_description_ml: jsonToMultiLang(cat.seo_description_ml),
+        product_count: countMap[cat.id] || 0,
+      }))
+    );
     setIsLoading(false);
   };
 
@@ -208,7 +368,7 @@ export default function AdminCategories() {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (category: Category) => {
+  const openEditDialog = (category: CategoryWithMeta) => {
     setEditingCategory(category);
     setFormData({
       name_ml: category.name_ml || { uz: category.name },
@@ -248,7 +408,6 @@ export default function AdminCategories() {
     e.preventDefault();
     setErrors({});
 
-    // Validate required fields
     if (!formData.name_ml.uz) {
       setErrors({ name: t('hint.nameRequired') });
       return;
@@ -325,6 +484,18 @@ export default function AdminCategories() {
     setDeleteId(null);
   };
 
+  // Translation status helper
+  const getTranslationStatus = (cat: CategoryWithMeta) => {
+    const translatedCount = activeLanguages.filter(
+      (lang) => cat.name_ml[lang] && cat.name_ml[lang].trim() !== ''
+    ).length;
+    const total = activeLanguages.length;
+    
+    if (translatedCount === total) return { label: 'To\'liq', variant: 'default' as const };
+    if (translatedCount > 1) return { label: `${translatedCount}/${total}`, variant: 'secondary' as const };
+    return { label: 'Faqat UZ', variant: 'outline' as const };
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -342,20 +513,36 @@ export default function AdminCategories() {
           </Button>
         </div>
 
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-6">
+            <CategoryFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              activeLanguages={activeLanguages}
+            />
+          </CardContent>
+        </Card>
+
         {/* Categories Table */}
         <Card>
           <CardHeader>
-            <CardTitle>{t('admin.categories.list')} ({categories.length})</CardTitle>
+            <CardTitle>
+              {t('admin.categories.list')} ({filteredCategories.length}
+              {filteredCategories.length !== categories.length && ` / ${categories.length}`})
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : categories.length === 0 ? (
+            ) : filteredCategories.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <FolderTree className="mb-4 h-12 w-12 text-muted-foreground" />
-                <p className="text-muted-foreground">{t('admin.categories.notFound')}</p>
+                <p className="text-muted-foreground">
+                  {categories.length === 0 ? t('admin.categories.notFound') : 'Filtr bo\'yicha natija topilmadi'}
+                </p>
               </div>
             ) : (
               <>
@@ -366,73 +553,89 @@ export default function AdminCategories() {
                         <TableHead className="w-16">{t('form.image')}</TableHead>
                         <TableHead>{t('form.name')}</TableHead>
                         <TableHead>{t('form.slug')}</TableHead>
+                        <TableHead className="text-center">Mahsulotlar</TableHead>
+                        <TableHead className="text-center">Tarjima</TableHead>
                         <TableHead>{t('common.status')}</TableHead>
                         <TableHead className="text-right">{t('common.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedCategories.map((category) => (
-                        <TableRow key={category.id}>
-                          <TableCell>
-                            <div className="h-10 w-10 rounded-md overflow-hidden bg-secondary">
-                              {category.image_url ? (
-                                <img
-                                  src={category.image_url}
-                                  alt={getLocalizedText(category.name_ml, currentLanguage) || category.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center">
-                                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {getLocalizedText(category.name_ml, currentLanguage) || category.name}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {category.slug}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={category.is_active}
-                                onCheckedChange={(checked) => handleToggleActive(category.id, checked)}
-                              />
-                              <Badge variant={category.is_active ? 'default' : 'secondary'}>
-                                {category.is_active ? t('common.active') : t('common.inactive')}
+                      {paginatedCategories.map((category) => {
+                        const translationStatus = getTranslationStatus(category);
+                        return (
+                          <TableRow key={category.id}>
+                            <TableCell>
+                              <div className="h-10 w-10 rounded-md overflow-hidden bg-secondary">
+                                {category.image_url ? (
+                                  <img
+                                    src={category.image_url}
+                                    alt={getLocalizedText(category.name_ml, currentLanguage) || category.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-full w-full flex items-center justify-center">
+                                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {getLocalizedText(category.name_ml, currentLanguage) || category.name}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {category.slug}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant={category.product_count > 0 ? 'default' : 'secondary'}>
+                                <Package className="h-3 w-3 mr-1" />
+                                {category.product_count}
                               </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openEditDialog(category)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setDeleteId(category.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant={translationStatus.variant}>
+                                {translationStatus.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={category.is_active}
+                                  onCheckedChange={(checked) => handleToggleActive(category.id, checked)}
+                                />
+                                <Badge variant={category.is_active ? 'default' : 'secondary'}>
+                                  {category.is_active ? t('common.active') : t('common.inactive')}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openEditDialog(category)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteId(category.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
                 <AdminPagination
                   currentPage={currentPage}
                   totalPages={totalPages}
-                  totalItems={categories.length}
+                  totalItems={filteredCategories.length}
                   itemsPerPage={ITEMS_PER_PAGE}
                   onPageChange={setCurrentPage}
                 />
@@ -441,7 +644,7 @@ export default function AdminCategories() {
           </CardContent>
         </Card>
 
-        {/* Create/Edit Dialog with fixed height and scroll */}
+        {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="w-full max-w-[95vw] sm:max-w-[700px] md:max-w-[800px] max-h-[85vh] flex flex-col p-6">
             <DialogHeader className="flex-shrink-0">
