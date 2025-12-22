@@ -76,10 +76,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     return null;
   }
 
-  const roleLabels: Record<string, string> = {
-    superadmin: 'Super Admin',
-    admin: 'Admin',
-    manager: 'Menejer',
+  // Role labels - hide "Super Admin" label from display for security
+  const getRoleLabel = (role: string | null) => {
+    const labels: Record<string, string> = {
+      superadmin: 'Administrator', // Don't expose "Super Admin" terminology
+      admin: 'Admin',
+      manager: 'Menejer',
+    };
+    return role ? (labels[role] || role) : '';
   };
 
   return (
@@ -137,7 +141,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 </div>
                 {userRole && (
                   <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary mt-1">
-                    {roleLabels[userRole] || userRole}
+                    {getRoleLabel(userRole)}
                   </span>
                 )}
               </div>

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe, MapPin, ExternalLink, Copy, Check, Send, Eye, EyeOff, Download, Database, Package, ShoppingCart, FolderTree, HardDrive, FileJson, ImageIcon as ImagesIcon, Code } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import * as XLSX from 'xlsx';
 
 interface SiteSettings {
@@ -44,6 +45,10 @@ export default function AdminSettings() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { userRole } = useAuth();
+
+  // Check if user is superadmin - only superadmin can see backup/export features
+  const isSuperAdmin = userRole === 'superadmin';
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -1120,158 +1125,162 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        {/* Full Backup Section */}
-        <Card className="border-2 border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <HardDrive className="h-5 w-5 text-primary" />
-              To'liq Backup (VSCode uchun)
-            </CardTitle>
-            <CardDescription>
-              Database, rasmlar va barcha ma'lumotlarni JSON formatda yuklab olish - VSCode da ishlatish uchun
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {/* Full Database Backup */}
-              <Button
-                variant="default"
-                className="h-auto py-6 flex-col gap-2"
-                onClick={() => downloadFullBackup('database')}
-                disabled={isBackingUp !== null}
-              >
-                {isBackingUp === 'database' ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : (
-                  <FileJson className="h-8 w-8" />
-                )}
-                <span className="font-medium">Database Backup</span>
-                <span className="text-xs opacity-80">Barcha jadvallar (JSON)</span>
-              </Button>
+        {/* Full Backup Section - SUPERADMIN ONLY */}
+        {isSuperAdmin && (
+          <Card className="border-2 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5 text-primary" />
+                To'liq Backup (VSCode uchun)
+              </CardTitle>
+              <CardDescription>
+                Database, rasmlar va barcha ma'lumotlarni JSON formatda yuklab olish - VSCode da ishlatish uchun
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                {/* Full Database Backup */}
+                <Button
+                  variant="default"
+                  className="h-auto py-6 flex-col gap-2"
+                  onClick={() => downloadFullBackup('database')}
+                  disabled={isBackingUp !== null}
+                >
+                  {isBackingUp === 'database' ? (
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  ) : (
+                    <FileJson className="h-8 w-8" />
+                  )}
+                  <span className="font-medium">Database Backup</span>
+                  <span className="text-xs opacity-80">Barcha jadvallar (JSON)</span>
+                </Button>
 
-              {/* Images List */}
-              <Button
-                variant="outline"
-                className="h-auto py-6 flex-col gap-2 border-primary/30"
-                onClick={() => downloadFullBackup('images')}
-                disabled={isBackingUp !== null}
-              >
-                {isBackingUp === 'images' ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : (
-                  <ImagesIcon className="h-8 w-8 text-green-600" />
-                )}
-                <span className="font-medium">Rasmlar Ro'yxati</span>
-                <span className="text-xs text-muted-foreground">URL lari bilan</span>
-              </Button>
+                {/* Images List */}
+                <Button
+                  variant="outline"
+                  className="h-auto py-6 flex-col gap-2 border-primary/30"
+                  onClick={() => downloadFullBackup('images')}
+                  disabled={isBackingUp !== null}
+                >
+                  {isBackingUp === 'images' ? (
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  ) : (
+                    <ImagesIcon className="h-8 w-8 text-green-600" />
+                  )}
+                  <span className="font-medium">Rasmlar Ro'yxati</span>
+                  <span className="text-xs text-muted-foreground">URL lari bilan</span>
+                </Button>
 
-              {/* Full Backup (All) */}
-              <Button
-                variant="default"
-                className="h-auto py-6 flex-col gap-2 bg-gradient-to-r from-primary to-primary/80"
-                onClick={() => downloadFullBackup('all')}
-                disabled={isBackingUp !== null}
-              >
-                {isBackingUp === 'all' ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : (
-                  <Download className="h-8 w-8" />
-                )}
-                <span className="font-medium">TO'LIQ BACKUP</span>
-                <span className="text-xs opacity-80">Database + Rasmlar</span>
-              </Button>
-            </div>
+                {/* Full Backup (All) */}
+                <Button
+                  variant="default"
+                  className="h-auto py-6 flex-col gap-2 bg-gradient-to-r from-primary to-primary/80"
+                  onClick={() => downloadFullBackup('all')}
+                  disabled={isBackingUp !== null}
+                >
+                  {isBackingUp === 'all' ? (
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  ) : (
+                    <Download className="h-8 w-8" />
+                  )}
+                  <span className="font-medium">TO'LIQ BACKUP</span>
+                  <span className="text-xs opacity-80">Database + Rasmlar</span>
+                </Button>
+              </div>
 
-            <div className="rounded-lg border border-primary/20 bg-background p-4 space-y-3">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <Code className="h-4 w-4" />
-                Backup tarkibi:
-              </h4>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li><strong>products</strong> - barcha mahsulotlar (to'liq ma'lumot)</li>
-                <li><strong>categories</strong> - kategoriyalar</li>
-                <li><strong>orders</strong> - buyurtmalar</li>
-                <li><strong>site_content</strong> - sayt kontenti (tarjimalar)</li>
-                <li><strong>site_settings</strong> - sozlamalar</li>
-                <li><strong>languages</strong> - tillar</li>
-                <li><strong>stock_history</strong> - ombor tarixi</li>
-                <li><strong>storage files</strong> - rasmlar URL lari</li>
-              </ul>
-            </div>
+              <div className="rounded-lg border border-primary/20 bg-background p-4 space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  Backup tarkibi:
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li><strong>products</strong> - barcha mahsulotlar (to'liq ma'lumot)</li>
+                  <li><strong>categories</strong> - kategoriyalar</li>
+                  <li><strong>orders</strong> - buyurtmalar</li>
+                  <li><strong>site_content</strong> - sayt kontenti (tarjimalar)</li>
+                  <li><strong>site_settings</strong> - sozlamalar</li>
+                  <li><strong>languages</strong> - tillar</li>
+                  <li><strong>stock_history</strong> - ombor tarixi</li>
+                  <li><strong>storage files</strong> - rasmlar URL lari</li>
+                </ul>
+              </div>
 
-            <p className="text-xs text-muted-foreground">
-              JSON faylni VSCode da ochib, ma'lumotlarni boshqa loyihaga import qilishingiz mumkin.
-            </p>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground">
+                JSON faylni VSCode da ochib, ma'lumotlarni boshqa loyihaga import qilishingiz mumkin.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Data Export */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-blue-600" />
-              Ma'lumotlarni export qilish (Excel)
-            </CardTitle>
-            <CardDescription>
-              Mahsulotlar, buyurtmalar va kategoriyalarni Excel formatda yuklab olish
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {/* Products Export */}
-              <Button
-                variant="outline"
-                className="h-auto py-4 flex-col gap-2"
-                onClick={() => exportToExcel('products')}
-                disabled={isExporting !== null}
-              >
-                {isExporting === 'products' ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <Package className="h-6 w-6 text-primary" />
-                )}
-                <span className="font-medium">Mahsulotlar</span>
-                <span className="text-xs text-muted-foreground">Excel formatda</span>
-              </Button>
+        {/* Data Export - SUPERADMIN ONLY */}
+        {isSuperAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-blue-600" />
+                Ma'lumotlarni export qilish (Excel)
+              </CardTitle>
+              <CardDescription>
+                Mahsulotlar, buyurtmalar va kategoriyalarni Excel formatda yuklab olish
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                {/* Products Export */}
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex-col gap-2"
+                  onClick={() => exportToExcel('products')}
+                  disabled={isExporting !== null}
+                >
+                  {isExporting === 'products' ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <Package className="h-6 w-6 text-primary" />
+                  )}
+                  <span className="font-medium">Mahsulotlar</span>
+                  <span className="text-xs text-muted-foreground">Excel formatda</span>
+                </Button>
 
-              {/* Orders Export */}
-              <Button
-                variant="outline"
-                className="h-auto py-4 flex-col gap-2"
-                onClick={() => exportToExcel('orders')}
-                disabled={isExporting !== null}
-              >
-                {isExporting === 'orders' ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <ShoppingCart className="h-6 w-6 text-green-600" />
-                )}
-                <span className="font-medium">Buyurtmalar</span>
-                <span className="text-xs text-muted-foreground">Excel formatda</span>
-              </Button>
+                {/* Orders Export */}
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex-col gap-2"
+                  onClick={() => exportToExcel('orders')}
+                  disabled={isExporting !== null}
+                >
+                  {isExporting === 'orders' ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="h-6 w-6 text-green-600" />
+                  )}
+                  <span className="font-medium">Buyurtmalar</span>
+                  <span className="text-xs text-muted-foreground">Excel formatda</span>
+                </Button>
 
-              {/* Categories Export */}
-              <Button
-                variant="outline"
-                className="h-auto py-4 flex-col gap-2"
-                onClick={() => exportToExcel('categories')}
-                disabled={isExporting !== null}
-              >
-                {isExporting === 'categories' ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <FolderTree className="h-6 w-6 text-orange-600" />
-                )}
-                <span className="font-medium">Kategoriyalar</span>
-                <span className="text-xs text-muted-foreground">Excel formatda</span>
-              </Button>
-            </div>
+                {/* Categories Export */}
+                <Button
+                  variant="outline"
+                  className="h-auto py-4 flex-col gap-2"
+                  onClick={() => exportToExcel('categories')}
+                  disabled={isExporting !== null}
+                >
+                  {isExporting === 'categories' ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <FolderTree className="h-6 w-6 text-orange-600" />
+                  )}
+                  <span className="font-medium">Kategoriyalar</span>
+                  <span className="text-xs text-muted-foreground">Excel formatda</span>
+                </Button>
+              </div>
 
-            <p className="text-xs text-muted-foreground">
-              Barcha ma'lumotlar .xlsx formatda yuklab olinadi va Microsoft Excel, Google Sheets yoki boshqa dasturlarda ochish mumkin.
-            </p>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground">
+                Barcha ma'lumotlar .xlsx formatda yuklab olinadi va Microsoft Excel, Google Sheets yoki boshqa dasturlarda ochish mumkin.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
