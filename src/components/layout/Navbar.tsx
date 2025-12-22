@@ -46,10 +46,11 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
         <Link to={`${linkPrefix}/`} className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <span className="text-xl font-bold text-primary-foreground">K</span>
-          </div>
-          <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
+          <img 
+            src="/logo.png" 
+            alt="Kiraska.uz" 
+            className="h-10 w-auto"
+          />
         </Link>
 
         {/* Desktop Navigation */}

@@ -87,10 +87,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">K</span>
-            </div>
-            <span className="font-bold text-foreground">Admin</span>
+            <img 
+              src="/logo.png" 
+              alt="Kiraska.uz" 
+              className="h-8 w-auto"
+            />
           </div>
 
           {/* Navigation - scrollable */}
