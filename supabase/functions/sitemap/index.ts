@@ -18,7 +18,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const baseUrl = "https://kiraska.uz";
-    const languages = ["uz", "ru", "ky", "tj", "zh"];
+
+    // Fetch active languages from database
+    const { data: languagesData } = await supabase
+      .from("languages")
+      .select("code")
+      .eq("is_active", true)
+      .order("position");
+
+    const languages = languagesData?.map(l => l.code) || ["uz"];
+    const defaultLang = "uz";
 
     // Fetch active categories
     const { data: categories } = await supabase
@@ -38,83 +47,54 @@ serve(async (req) => {
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 `;
 
-    // Static pages
-    const staticPages = [
-      { url: "/", priority: "1.0", changefreq: "daily" },
-      { url: "/products", priority: "0.9", changefreq: "daily" },
-      { url: "/catalog", priority: "0.9", changefreq: "daily" },
-      { url: "/about", priority: "0.7", changefreq: "monthly" },
-      { url: "/contact", priority: "0.7", changefreq: "monthly" },
-    ];
-
-    for (const page of staticPages) {
+    // Helper to generate URL with hreflang alternates
+    const generateUrl = (path: string, lastmod: string | null, priority: string, changefreq: string) => {
+      let urlBlock = "";
       for (const lang of languages) {
-        const langPrefix = lang === "uz" ? "" : `/${lang}`;
-        xml += `  <url>
-    <loc>${baseUrl}${langPrefix}${page.url}</loc>
-    <changefreq>${page.changefreq}</changefreq>
-    <priority>${page.priority}</priority>
+        const langPrefix = lang === defaultLang ? "" : `/${lang}`;
+        const fullUrl = `${baseUrl}${langPrefix}${path}`;
+        const lastmodStr = lastmod ? new Date(lastmod).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+        
+        urlBlock += `  <url>
+    <loc>${fullUrl}</loc>
+    <lastmod>${lastmodStr}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
 `;
         // Add hreflang alternates
         for (const altLang of languages) {
-          const altPrefix = altLang === "uz" ? "" : `/${altLang}`;
-          xml += `    <xhtml:link rel="alternate" hreflang="${altLang}" href="${baseUrl}${altPrefix}${page.url}" />
+          const altPrefix = altLang === defaultLang ? "" : `/${altLang}`;
+          urlBlock += `    <xhtml:link rel="alternate" hreflang="${altLang}" href="${baseUrl}${altPrefix}${path}" />
 `;
         }
-        xml += `  </url>
+        urlBlock += `  </url>
 `;
       }
-    }
+      return urlBlock;
+    };
 
-    // Category pages
-    if (categories) {
-      for (const category of categories) {
-        for (const lang of languages) {
-          const langPrefix = lang === "uz" ? "" : `/${lang}`;
-          const lastmod = category.updated_at ? new Date(category.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
-          
-          xml += `  <url>
-    <loc>${baseUrl}${langPrefix}/catalog?category=${category.slug}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-`;
-          for (const altLang of languages) {
-            const altPrefix = altLang === "uz" ? "" : `/${altLang}`;
-            xml += `    <xhtml:link rel="alternate" hreflang="${altLang}" href="${baseUrl}${altPrefix}/catalog?category=${category.slug}" />
-`;
-          }
-          xml += `  </url>
-`;
-        }
-      }
-    }
+    // Main pages (Home, About, Contact)
+    xml += generateUrl("/", null, "1.0", "daily");
+    xml += generateUrl("/about", null, "0.6", "monthly");
+    xml += generateUrl("/contact", null, "0.6", "monthly");
 
-    // Product pages
+    // Product pages (priority 0.9)
     if (products) {
       for (const product of products) {
-        for (const lang of languages) {
-          const langPrefix = lang === "uz" ? "" : `/${lang}`;
-          const lastmod = product.updated_at ? new Date(product.updated_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
-          
-          xml += `  <url>
-    <loc>${baseUrl}${langPrefix}/product/${product.slug}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-`;
-          for (const altLang of languages) {
-            const altPrefix = altLang === "uz" ? "" : `/${altLang}`;
-            xml += `    <xhtml:link rel="alternate" hreflang="${altLang}" href="${baseUrl}${altPrefix}/product/${product.slug}" />
-`;
-          }
-          xml += `  </url>
-`;
-        }
+        xml += generateUrl(`/product/${product.slug}`, product.updated_at, "0.9", "weekly");
+      }
+    }
+
+    // Category pages (priority 0.7)
+    if (categories) {
+      for (const category of categories) {
+        xml += generateUrl(`/catalog?category=${category.slug}`, category.updated_at, "0.7", "weekly");
       }
     }
 
     xml += `</urlset>`;
+
+    console.log(`Sitemap generated: ${products?.length || 0} products, ${categories?.length || 0} categories, ${languages.length} languages`);
 
     return new Response(xml, {
       headers: corsHeaders,
