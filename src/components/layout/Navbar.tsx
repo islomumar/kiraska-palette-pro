@@ -71,8 +71,10 @@ export function Navbar() {
               key={link.path}
               to={`${linkPrefix}${link.path}`}
               className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors rounded-lg hover:text-primary",
-                isActivePath(link.path) ? "text-primary" : "text-muted-foreground"
+                "px-4 py-2 text-sm font-medium transition-colors rounded-lg",
+                isActivePath(link.path) 
+                  ? "text-primary bg-primary/10 font-semibold" 
+                  : "text-muted-foreground hover:text-primary hover:bg-secondary"
               )}
             >
               {renderText(link.key, link.fallback)}
