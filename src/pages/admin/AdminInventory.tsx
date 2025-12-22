@@ -61,6 +61,7 @@ import { formatNumberWithSpaces } from '@/components/ui/formatted-number-input';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { uz } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AdminPagination } from '@/components/admin/AdminPagination';
 
 interface Product {
   id: string;
@@ -86,6 +87,8 @@ interface WarehouseMovement {
   created_by: string | null;
 }
 
+const ITEMS_PER_PAGE = 50;
+
 export default function AdminInventory() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,6 +104,7 @@ export default function AdminInventory() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
   const [stockForm, setStockForm] = useState({
@@ -336,6 +340,17 @@ export default function AdminInventory() {
       return matchesSearch && matchesFilter;
     });
   }, [products, searchQuery, filterStatus]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterStatus]);
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
 
   const stats = useMemo(() => {
     const total = products.length;
@@ -745,95 +760,104 @@ export default function AdminInventory() {
                 <p className="mt-4 text-lg font-medium text-foreground">Mahsulotlar topilmadi</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mahsulot</TableHead>
-                      <TableHead>Kategoriya</TableHead>
-                      <TableHead className="text-center">Joriy zaxira</TableHead>
-                      <TableHead className="text-center">Minimal chegara</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-right">Amallar</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => {
-                      const status = getStockStatus(product);
-                      const StatusIcon = status.icon;
-                      
-                      return (
-                        <TableRow 
-                          key={product.id}
-                          className={status.bgColor}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              {product.image_url ? (
-                                <img
-                                  src={product.image_url}
-                                  alt={product.name}
-                                  className="h-10 w-10 rounded-md object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
-                                  <Package className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                              )}
-                              <span className="font-medium">{product.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {product.category?.name || '-'}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className={`font-semibold ${status.color}`}>
-                              {formatNumberWithSpaces(product.stock_quantity)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center text-muted-foreground">
-                            {formatNumberWithSpaces(product.low_stock_threshold)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className={`inline-flex items-center gap-1 ${status.color}`}>
-                              <StatusIcon className="h-4 w-4" />
-                              <span className="text-sm">{status.label}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenStockDialog(product, 'IN')}
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenStockDialog(product, 'OUT')}
-                                disabled={product.stock_quantity === 0}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenHistoryDialog(product)}
-                              >
-                                <History className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mahsulot</TableHead>
+                        <TableHead>Kategoriya</TableHead>
+                        <TableHead className="text-center">Joriy zaxira</TableHead>
+                        <TableHead className="text-center">Minimal chegara</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-right">Amallar</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedProducts.map((product) => {
+                        const status = getStockStatus(product);
+                        const StatusIcon = status.icon;
+                        
+                        return (
+                          <TableRow 
+                            key={product.id}
+                            className={status.bgColor}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                {product.image_url ? (
+                                  <img
+                                    src={product.image_url}
+                                    alt={product.name}
+                                    className="h-10 w-10 rounded-md object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                                    <Package className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <span className="font-medium">{product.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {product.category?.name || '-'}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className={`font-semibold ${status.color}`}>
+                                {formatNumberWithSpaces(product.stock_quantity)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center text-muted-foreground">
+                              {formatNumberWithSpaces(product.low_stock_threshold)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className={`inline-flex items-center gap-1 ${status.color}`}>
+                                <StatusIcon className="h-4 w-4" />
+                                <span className="text-sm">{status.label}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenStockDialog(product, 'IN')}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenStockDialog(product, 'OUT')}
+                                  disabled={product.stock_quantity === 0}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenHistoryDialog(product)}
+                                >
+                                  <History className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <AdminPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredProducts.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>
