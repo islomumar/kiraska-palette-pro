@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Phone, Mail, MapPin, Clock, Send, Instagram } from "lucide-react";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
+import { MapLocationEditorInline } from "@/components/admin/MapLocationEditorInline";
 import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
@@ -15,25 +16,32 @@ const Contact = () => {
   const { getText } = useSiteContent();
   const { isEditMode } = useEditMode();
   const [mapCoords, setMapCoords] = useState({ lat: '41.2911', lng: '69.2033' });
+  const [mapKey, setMapKey] = useState(0);
+
+  const loadMapCoords = useCallback(async () => {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['map_latitude', 'map_longitude']);
+
+    if (data) {
+      const coords = { lat: '41.2911', lng: '69.2033' };
+      data.forEach(item => {
+        if (item.key === 'map_latitude' && item.value) coords.lat = item.value;
+        if (item.key === 'map_longitude' && item.value) coords.lng = item.value;
+      });
+      setMapCoords(coords);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadMapCoords = async () => {
-      const { data } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .in('key', ['map_latitude', 'map_longitude']);
-
-      if (data) {
-        const coords = { lat: '41.2911', lng: '69.2033' };
-        data.forEach(item => {
-          if (item.key === 'map_latitude' && item.value) coords.lat = item.value;
-          if (item.key === 'map_longitude' && item.value) coords.lng = item.value;
-        });
-        setMapCoords(coords);
-      }
-    };
     loadMapCoords();
-  }, []);
+  }, [loadMapCoords]);
+
+  const handleMapUpdate = () => {
+    loadMapCoords();
+    setMapKey(prev => prev + 1);
+  };
 
   const renderText = (key: string, fallback: string) => {
     if (isEditMode) {
@@ -265,8 +273,17 @@ const Contact = () => {
             <h2 className="text-2xl font-bold text-foreground mb-6">
               {renderText('contact_map_title', 'Bizning joylashuvimiz')}
             </h2>
+            
+            {/* Map Location Editor - Only in Edit Mode */}
+            {isEditMode && (
+              <div className="mb-4">
+                <MapLocationEditorInline onUpdate={handleMapUpdate} />
+              </div>
+            )}
+            
             <div className="aspect-[21/9] rounded-3xl overflow-hidden bg-secondary">
               <iframe
+                key={mapKey}
                 src={getMapEmbedUrl()}
                 width="100%"
                 height="100%"
