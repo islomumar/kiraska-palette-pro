@@ -84,7 +84,7 @@ export function Categories() {
                     {category.description || ''}
                   </p>
                   <div className="mt-2 flex items-center gap-2 text-primary font-medium text-sm opacity-0 translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                    Ko'rish <ArrowRight className="h-4 w-4" />
+                    {renderText('categories_view_button', "Ko'rish")} <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
               </div>
