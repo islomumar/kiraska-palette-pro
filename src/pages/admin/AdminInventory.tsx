@@ -58,7 +58,9 @@ import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatNumberWithSpaces } from '@/components/ui/formatted-number-input';
-import { format } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { uz } from 'date-fns/locale';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface Product {
   id: string;
@@ -95,7 +97,9 @@ export default function AdminInventory() {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [movements, setMovements] = useState<WarehouseMovement[]>([]);
+  const [allMovements, setAllMovements] = useState<WarehouseMovement[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingChart, setIsLoadingChart] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -139,8 +143,26 @@ export default function AdminInventory() {
     setIsLoading(false);
   };
 
+  const fetchAllMovements = async () => {
+    setIsLoadingChart(true);
+    // Get last 6 months of data
+    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
+    
+    const { data, error } = await supabase
+      .from('warehouse_movements')
+      .select('*')
+      .gte('created_at', sixMonthsAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (!error && data) {
+      setAllMovements(data as WarehouseMovement[]);
+    }
+    setIsLoadingChart(false);
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchAllMovements();
   }, []);
 
   const fetchMovementHistory = async (productId: string) => {
@@ -281,6 +303,49 @@ export default function AdminInventory() {
 
     return { total, inStock, outOfStock, lowStock, totalValue };
   }, [products]);
+
+  // Monthly chart data
+  const monthlyChartData = useMemo(() => {
+    const months: { [key: string]: { name: string; kirim: number; chiqim: number } } = {};
+    
+    // Initialize last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = subMonths(new Date(), i);
+      const key = format(date, 'yyyy-MM');
+      const monthName = format(date, 'MMM', { locale: uz });
+      months[key] = { name: monthName, kirim: 0, chiqim: 0 };
+    }
+    
+    // Aggregate movements
+    allMovements.forEach(movement => {
+      const key = format(new Date(movement.created_at), 'yyyy-MM');
+      if (months[key]) {
+        if (movement.type === 'IN') {
+          months[key].kirim += movement.quantity;
+        } else {
+          months[key].chiqim += movement.quantity;
+        }
+      }
+    });
+    
+    return Object.values(months);
+  }, [allMovements]);
+
+  // Pie chart data for stock status
+  const pieChartData = useMemo(() => {
+    return [
+      { name: 'Mavjud', value: stats.inStock, color: '#22c55e' },
+      { name: 'Kam qoldi', value: stats.lowStock, color: '#eab308' },
+      { name: 'Mavjud emas', value: stats.outOfStock, color: '#ef4444' },
+    ].filter(item => item.value > 0);
+  }, [stats]);
+
+  // Total movements stats
+  const movementStats = useMemo(() => {
+    const totalIn = allMovements.filter(m => m.type === 'IN').reduce((sum, m) => sum + m.quantity, 0);
+    const totalOut = allMovements.filter(m => m.type === 'OUT').reduce((sum, m) => sum + m.quantity, 0);
+    return { totalIn, totalOut };
+  }, [allMovements]);
 
   const getStatusText = (product: Product) => {
     if (!product.in_stock || product.stock_quantity === 0) return 'Mavjud emas';
@@ -467,6 +532,127 @@ export default function AdminInventory() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Monthly Bar Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Oylik kirim/chiqim
+              </CardTitle>
+              <CardDescription>Oxirgi 6 oy statistikasi</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingChart ? (
+                <div className="flex items-center justify-center h-[250px]">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : monthlyChartData.every(d => d.kirim === 0 && d.chiqim === 0) ? (
+                <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
+                  <Package className="h-10 w-10 mb-2" />
+                  <p>Hali harakatlar yo'q</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={monthlyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => formatNumberWithSpaces(value)}
+                    />
+                    <Legend />
+                    <Bar dataKey="kirim" name="Kirim" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="chiqim" name="Chiqim" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pie Chart & Movement Stats */}
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Zaxira holati</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pieChartData.length === 0 ? (
+                  <div className="flex items-center justify-center h-[120px] text-muted-foreground">
+                    <p>Ma'lumot yo'q</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <ResponsiveContainer width={120} height={120}>
+                      <PieChart>
+                        <Pie
+                          data={pieChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={50}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {pieChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => formatNumberWithSpaces(value)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="flex-1 space-y-2">
+                      {pieChartData.map((item) => (
+                        <div key={item.name} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                            <span>{item.name}</span>
+                          </div>
+                          <span className="font-medium">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Oxirgi 6 oy jami</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Jami kirim</p>
+                      <p className="text-lg font-bold text-green-600">
+                        {formatNumberWithSpaces(movementStats.totalIn)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
+                    <TrendingDown className="h-8 w-8 text-red-600" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Jami chiqim</p>
+                      <p className="text-lg font-bold text-red-600">
+                        {formatNumberWithSpaces(movementStats.totalOut)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Search and Filter */}
