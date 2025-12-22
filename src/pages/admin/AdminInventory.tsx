@@ -163,7 +163,50 @@ export default function AdminInventory() {
   useEffect(() => {
     fetchProducts();
     fetchAllMovements();
-  }, []);
+
+    // Real-time subscription for products (stock updates)
+    const productsChannel = supabase
+      .channel('products-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        (payload) => {
+          console.log('Products change:', payload);
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for warehouse movements
+    const movementsChannel = supabase
+      .channel('movements-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'warehouse_movements'
+        },
+        (payload) => {
+          console.log('New movement:', payload);
+          fetchAllMovements();
+          // If history dialog is open, refresh it
+          if (selectedProduct) {
+            fetchMovementHistory(selectedProduct.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productsChannel);
+      supabase.removeChannel(movementsChannel);
+    };
+  }, [selectedProduct]);
 
   const fetchMovementHistory = async (productId: string) => {
     setIsLoadingHistory(true);
