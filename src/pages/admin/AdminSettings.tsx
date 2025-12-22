@@ -5,19 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, Link as LinkIcon, Save, Trash2, Facebook, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SiteSettings {
   logo_url: string | null;
   favicon_url: string | null;
+  facebook_pixel_id: string | null;
+  facebook_domain_verification: string | null;
 }
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<SiteSettings>({
     logo_url: null,
     favicon_url: null,
+    facebook_pixel_id: null,
+    facebook_domain_verification: null,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,10 +49,14 @@ export default function AdminSettings() {
       const settingsMap: SiteSettings = {
         logo_url: null,
         favicon_url: null,
+        facebook_pixel_id: null,
+        facebook_domain_verification: null,
       };
       data?.forEach((item) => {
         if (item.key === 'logo_url') settingsMap.logo_url = item.value;
         if (item.key === 'favicon_url') settingsMap.favicon_url = item.value;
+        if (item.key === 'facebook_pixel_id') settingsMap.facebook_pixel_id = item.value;
+        if (item.key === 'facebook_domain_verification') settingsMap.facebook_domain_verification = item.value;
       });
       setSettings(settingsMap);
     }
@@ -200,6 +208,45 @@ export default function AdminSettings() {
     }
   };
 
+  const handleFacebookSave = async () => {
+    setIsSaving(true);
+    try {
+      // Upsert facebook_pixel_id
+      const { error: pixelError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'facebook_pixel_id', 
+          value: settings.facebook_pixel_id 
+        }, { onConflict: 'key' });
+
+      if (pixelError) throw pixelError;
+
+      // Upsert facebook_domain_verification
+      const { error: domainError } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'facebook_domain_verification', 
+          value: settings.facebook_domain_verification 
+        }, { onConflict: 'key' });
+
+      if (domainError) throw domainError;
+
+      toast({
+        title: 'Muvaffaqiyat',
+        description: 'Facebook sozlamalari saqlandi',
+      });
+    } catch (error) {
+      console.error('Facebook save error:', error);
+      toast({
+        title: 'Xatolik',
+        description: 'Saqlashda xatolik yuz berdi',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const updateFavicon = (url: string) => {
     // Update or create favicon link element
     let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
@@ -228,7 +275,7 @@ export default function AdminSettings() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Sozlamalar</h1>
           <p className="text-muted-foreground">
-            Sayt logo va favicon sozlamalari
+            Sayt logo, favicon va integratsiya sozlamalari
           </p>
         </div>
 
@@ -432,6 +479,73 @@ export default function AdminSettings() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Facebook Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Facebook className="h-5 w-5 text-[#1877F2]" />
+              Facebook sozlamalari
+            </CardTitle>
+            <CardDescription>
+              Facebook Pixel va Domain Verification sozlamalari
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Facebook Pixel ID */}
+              <div className="space-y-2">
+                <Label htmlFor="facebook_pixel_id" className="flex items-center gap-2">
+                  Facebook Pixel ID
+                </Label>
+                <Input
+                  id="facebook_pixel_id"
+                  value={settings.facebook_pixel_id || ''}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, facebook_pixel_id: e.target.value }))}
+                  placeholder="Masalan: 902186118024639"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Facebook Events Manager dan Pixel ID ni oling
+                </p>
+              </div>
+
+              {/* Domain Verification */}
+              <div className="space-y-2">
+                <Label htmlFor="facebook_domain_verification" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Domain Verification kodi
+                </Label>
+                <Input
+                  id="facebook_domain_verification"
+                  value={settings.facebook_domain_verification || ''}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, facebook_domain_verification: e.target.value }))}
+                  placeholder="Masalan: cbsnjzgkil9w1igb8dsuigz3lf033"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Facebook Business Settings → Brand Safety → Domains dan oling
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleFacebookSave}
+              disabled={isSaving}
+              className="w-full md:w-auto"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saqlanmoqda...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Facebook sozlamalarini saqlash
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );

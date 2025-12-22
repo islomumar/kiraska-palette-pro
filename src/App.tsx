@@ -12,6 +12,7 @@ import { EditModeProvider } from "@/contexts/EditModeContext";
 import { AdminSiteContentLayout } from "@/components/admin/AdminSiteContentLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useFacebookMeta } from "@/hooks/useFacebookMeta";
 import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
@@ -48,6 +49,7 @@ const queryClient = new QueryClient({
 // Layout wrapper for public routes
 function PublicLayout() {
   useSiteSettings();
+  useFacebookMeta();
   return (
     <Layout>
       <Outlet />
