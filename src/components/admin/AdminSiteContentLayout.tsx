@@ -2,8 +2,8 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useEditMode } from '@/contexts/EditModeContext';
 import { EditContentModal } from './EditContentModal';
 import { Badge } from '@/components/ui/badge';
-import { Eye, ArrowLeft } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Eye, ArrowLeft, Edit3 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ interface AdminSiteContentLayoutProps {
 export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps) {
   const { setEditMode } = useEditMode();
   const location = useLocation();
+  const navigate = useNavigate();
   const [firstProductSlug, setFirstProductSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,12 +41,12 @@ export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps
   }, []);
 
   const pageLinks = [
-    { path: '/admin/site-content', label: 'Bosh sahifa' },
-    { path: '/admin/site-content/catalog', label: 'Katalog' },
-    { path: '/admin/site-content/products', label: 'Mahsulotlar' },
-    ...(firstProductSlug ? [{ path: `/admin/site-content/products/${firstProductSlug}`, label: 'Mahsulot (namuna)' }] : []),
-    { path: '/admin/site-content/about', label: 'Biz haqimizda' },
-    { path: '/admin/site-content/contact', label: 'Aloqa' },
+    { path: '/admin/site-content', label: 'Bosh sahifa', editPath: '/admin/site-content/home/edit' },
+    { path: '/admin/site-content/catalog', label: 'Katalog', editPath: '/admin/site-content/catalog/edit' },
+    { path: '/admin/site-content/products', label: 'Mahsulotlar', editPath: '/admin/site-content/products/edit' },
+    ...(firstProductSlug ? [{ path: `/admin/site-content/products/${firstProductSlug}`, label: 'Mahsulot (namuna)', editPath: null }] : []),
+    { path: '/admin/site-content/about', label: 'Biz haqimizda', editPath: '/admin/site-content/about/edit' },
+    { path: '/admin/site-content/contact', label: 'Aloqa', editPath: '/admin/site-content/contact/edit' },
   ];
 
   const isActivePath = (path: string) => {
@@ -55,6 +56,13 @@ export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps
     }
     return location.pathname === path;
   };
+
+  const getCurrentEditPath = () => {
+    const currentPage = pageLinks.find(link => isActivePath(link.path));
+    return currentPage?.editPath || null;
+  };
+
+  const editPath = getCurrentEditPath();
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -71,10 +79,18 @@ export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps
             <div className="h-6 w-px bg-border" />
             <span className="font-semibold text-foreground">Sayt kontentini tahrirlash</span>
           </div>
-          <Badge variant="secondary" className="gap-2">
-            <Eye className="h-4 w-4" />
-            Tahrirlash rejimi
-          </Badge>
+          <div className="flex items-center gap-3">
+            {editPath && (
+              <Button size="sm" onClick={() => navigate(editPath)}>
+                <Edit3 className="h-4 w-4 mr-2" />
+                Kontentni tahrirlash
+              </Button>
+            )}
+            <Badge variant="secondary" className="gap-2">
+              <Eye className="h-4 w-4" />
+              Tahrirlash rejimi
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -112,7 +128,7 @@ export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100]">
         <div className="bg-card/95 backdrop-blur border border-border rounded-full px-4 py-2 shadow-lg">
           <p className="text-sm text-muted-foreground">
-            💡 Matn ustiga kursorni olib boring va <Pencil className="h-3 w-3 inline text-primary" /> tugmasini bosing
+            💡 Matn ustiga kursorni olib boring va <Pencil className="h-3 w-3 inline text-primary" /> tugmasini bosing yoki yuqoridagi "Kontentni tahrirlash" tugmasini bosing
           </p>
         </div>
       </div>
