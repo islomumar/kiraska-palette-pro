@@ -1,8 +1,7 @@
 import { useParams, Link } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { formatPrice } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, Star, Check, Truck, Shield, Phone, Loader2 } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Star, Check, Truck, Shield, Phone } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -50,164 +49,158 @@ const ProductDetail = () => {
 
   if (isLoading) {
     return (
-      <Layout>
-        <section className="py-8 md:py-12 bg-background">
-          <div className="container">
-            <Skeleton className="h-6 w-64 mb-8" />
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-              <Skeleton className="aspect-square rounded-3xl" />
-              <div className="space-y-6">
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-10 w-48" />
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
+      <section className="py-8 md:py-12 bg-background">
+        <div className="container">
+          <Skeleton className="h-6 w-64 mb-8" />
+          <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+            <Skeleton className="aspect-square rounded-3xl" />
+            <div className="space-y-6">
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-14 w-full" />
             </div>
           </div>
-        </section>
-      </Layout>
+        </div>
+      </section>
     );
   }
 
   if (!product) {
     return (
-      <Layout>
-        <div className="container py-24 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Mahsulot topilmadi</h1>
-          <Button asChild variant="outline" className="mt-4 rounded-full">
-            <Link to={`${linkPrefix}/products`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Mahsulotlarga qaytish
-            </Link>
-          </Button>
-        </div>
-      </Layout>
+      <div className="container py-24 text-center">
+        <h1 className="text-2xl font-bold text-foreground">Mahsulot topilmadi</h1>
+        <Button asChild variant="outline" className="mt-4 rounded-full">
+          <Link to={`${linkPrefix}/products`}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Mahsulotlarga qaytish
+          </Link>
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <section className="py-8 md:py-12 bg-background">
-        <div className="container">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
-            <Link to={`${linkPrefix}/`} className="hover:text-primary transition-colors">Bosh sahifa</Link>
-            <span>/</span>
-            <Link to={`${linkPrefix}/products`} className="hover:text-primary transition-colors">Mahsulotlar</Link>
-            <span>/</span>
-            <span className="text-foreground">{product.name}</span>
+    <section className="py-8 md:py-12 bg-background">
+      <div className="container">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+          <Link to={`${linkPrefix}/`} className="hover:text-primary transition-colors">Bosh sahifa</Link>
+          <span>/</span>
+          <Link to={`${linkPrefix}/products`} className="hover:text-primary transition-colors">Mahsulotlar</Link>
+          <span>/</span>
+          <span className="text-foreground">{product.name}</span>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+          {/* Image */}
+          <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary/30 p-8">
+            {product.is_bestseller && (
+              <span className="absolute left-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                <Star className="h-4 w-4" />
+                Bestseller
+              </span>
+            )}
+            {product.old_price && (
+              <span className="absolute right-4 top-4 z-10 inline-flex items-center rounded-full bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground">
+                -{Math.round((1 - (product.price || 0) / product.old_price) * 100)}% chegirma
+              </span>
+            )}
+            <img
+              src={product.image_url || '/placeholder.svg'}
+              alt={product.name || ''}
+              className="h-full w-full object-contain"
+            />
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-            {/* Image */}
-            <div className="relative aspect-square overflow-hidden rounded-3xl bg-secondary/30 p-8">
-              {product.is_bestseller && (
-                <span className="absolute left-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-                  <Star className="h-4 w-4" />
-                  Bestseller
-                </span>
-              )}
-              {product.old_price && (
-                <span className="absolute right-4 top-4 z-10 inline-flex items-center rounded-full bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground">
-                  -{Math.round((1 - (product.price || 0) / product.old_price) * 100)}% chegirma
-                </span>
-              )}
-              <img
-                src={product.image_url || '/placeholder.svg'}
-                alt={product.name || ''}
-                className="h-full w-full object-contain"
-              />
+          {/* Details */}
+          <div className="space-y-6">
+            <div>
+              <p className="text-sm font-medium text-primary uppercase tracking-wide">{product.brand}</p>
+              <h1 className="mt-2 text-3xl font-bold text-foreground md:text-4xl">{product.name}</h1>
+              <p className="mt-2 text-muted-foreground">{product.volume}</p>
             </div>
 
-            {/* Details */}
-            <div className="space-y-6">
+            {/* Price */}
+            <div className="flex items-baseline gap-4">
+              <span className="text-4xl font-bold text-foreground">{formatPrice(product.price || 0)}</span>
+              {product.old_price && (
+                <span className="text-xl text-muted-foreground line-through">{formatPrice(product.old_price)}</span>
+              )}
+            </div>
+
+            {/* Colors */}
+            {product.color_name && (
               <div>
-                <p className="text-sm font-medium text-primary uppercase tracking-wide">{product.brand}</p>
-                <h1 className="mt-2 text-3xl font-bold text-foreground md:text-4xl">{product.name}</h1>
-                <p className="mt-2 text-muted-foreground">{product.volume}</p>
+                <p className="text-sm font-medium text-foreground mb-3">Rang:</p>
+                <span className="px-4 py-2 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
+                  {product.color_name}
+                </span>
               </div>
+            )}
 
-              {/* Price */}
-              <div className="flex items-baseline gap-4">
-                <span className="text-4xl font-bold text-foreground">{formatPrice(product.price || 0)}</span>
-                {product.old_price && (
-                  <span className="text-xl text-muted-foreground line-through">{formatPrice(product.old_price)}</span>
-                )}
+            {/* Description */}
+            {product.full_description && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-2">Tavsif:</p>
+                <p className="text-muted-foreground leading-relaxed">{product.full_description}</p>
               </div>
+            )}
 
-              {/* Colors */}
-              {product.color_name && (
+            {/* Features */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-4 bg-secondary rounded-2xl">
+                <Truck className="h-6 w-6 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-foreground mb-3">Rang:</p>
-                  <span className="px-4 py-2 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
-                    {product.color_name}
-                  </span>
+                  <p className="text-sm font-medium text-foreground">Bepul yetkazib berish</p>
+                  <p className="text-xs text-muted-foreground">100,000 so'mdan oshsa</p>
                 </div>
-              )}
-
-              {/* Description */}
-              {product.full_description && (
+              </div>
+              <div className="flex items-center gap-3 p-4 bg-secondary rounded-2xl">
+                <Shield className="h-6 w-6 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-foreground mb-2">Tavsif:</p>
-                  <p className="text-muted-foreground leading-relaxed">{product.full_description}</p>
+                  <p className="text-sm font-medium text-foreground">Kafolat</p>
+                  <p className="text-xs text-muted-foreground">Original mahsulot</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <Button 
+                variant="accent" 
+                size="lg" 
+                className="flex-1 rounded-full" 
+                onClick={handleAddToCart}
+                disabled={!product.in_stock}
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Savatga qo'shish
+              </Button>
+              <Button variant="outline" size="lg" asChild className="rounded-full">
+                <a href="tel:+998901234567">
+                  <Phone className="h-5 w-5 mr-2" />
+                  Qo'ng'iroq qilish
+                </a>
+              </Button>
+            </div>
+
+            {/* Availability */}
+            <div className="flex items-center gap-2 text-sm">
+              {product.in_stock ? (
+                <>
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span className="text-muted-foreground">Sotuvda mavjud</span>
+                </>
+              ) : (
+                <span className="text-destructive">Sotuvda mavjud emas</span>
               )}
-
-              {/* Features */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-secondary rounded-2xl">
-                  <Truck className="h-6 w-6 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Bepul yetkazib berish</p>
-                    <p className="text-xs text-muted-foreground">100,000 so'mdan oshsa</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-secondary rounded-2xl">
-                  <Shield className="h-6 w-6 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Kafolat</p>
-                    <p className="text-xs text-muted-foreground">Original mahsulot</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button 
-                  variant="accent" 
-                  size="lg" 
-                  className="flex-1 rounded-full" 
-                  onClick={handleAddToCart}
-                  disabled={!product.in_stock}
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Savatga qo'shish
-                </Button>
-                <Button variant="outline" size="lg" asChild className="rounded-full">
-                  <a href="tel:+998901234567">
-                    <Phone className="h-5 w-5 mr-2" />
-                    Qo'ng'iroq qilish
-                  </a>
-                </Button>
-              </div>
-
-              {/* Availability */}
-              <div className="flex items-center gap-2 text-sm">
-                {product.in_stock ? (
-                  <>
-                    <Check className="h-5 w-5 text-green-500" />
-                    <span className="text-muted-foreground">Sotuvda mavjud</span>
-                  </>
-                ) : (
-                  <span className="text-destructive">Sotuvda mavjud emas</span>
-                )}
-              </div>
             </div>
           </div>
         </div>
-      </section>
-    </Layout>
+      </div>
+    </section>
   );
 };
 

@@ -1,9 +1,8 @@
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/contexts/CartContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -13,6 +12,7 @@ import { EditModeProvider } from "@/contexts/EditModeContext";
 import { AdminSiteContentLayout } from "@/components/admin/AdminSiteContentLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -45,46 +45,20 @@ const queryClient = new QueryClient({
   },
 });
 
-// Inner component that uses the hook
-function AppContent() {
-  // This hook handles favicon update
+// Layout wrapper for public routes
+function PublicLayout() {
   useSiteSettings();
-  
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/products" element={<Products />} />
-      <Route path="/products/:id" element={<ProductDetail />} />
-      <Route path="/catalog" element={<Catalog />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/cart" element={<Cart />} />
-      <Route path="/thank-you" element={<ThankYou />} />
-      {/* Admin Routes */}
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/admin/products" element={<AdminProducts />} />
-      <Route path="/admin/products/new" element={<AdminProductForm />} />
-      <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
-      <Route path="/admin/categories" element={<AdminCategories />} />
-      <Route path="/admin/inventory" element={<AdminInventory />} />
-      <Route path="/admin/orders" element={<AdminOrders />} />
-      <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
-      <Route path="/admin/users" element={<AdminUsers />} />
-      <Route path="/admin/languages" element={<AdminLanguages />} />
-      <Route path="/admin/settings" element={<AdminSettings />} />
-      <Route path="/admin/theme" element={<AdminTheme />} />
-      {/* Admin Site Content with nested routes */}
-      <Route path="/admin/site-content" element={<AdminSiteContentLayout><Index /></AdminSiteContentLayout>} />
-      <Route path="/admin/site-content/products" element={<AdminSiteContentLayout><Products /></AdminSiteContentLayout>} />
-      <Route path="/admin/site-content/products/:id" element={<AdminSiteContentLayout><ProductDetail /></AdminSiteContentLayout>} />
-      <Route path="/admin/site-content/catalog" element={<AdminSiteContentLayout><Catalog /></AdminSiteContentLayout>} />
-      <Route path="/admin/site-content/about" element={<AdminSiteContentLayout><About /></AdminSiteContentLayout>} />
-      <Route path="/admin/site-content/contact" element={<AdminSiteContentLayout><Contact /></AdminSiteContentLayout>} />
-      <Route path="/admin/site-content/cart" element={<AdminSiteContentLayout><Cart /></AdminSiteContentLayout>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Layout>
+      <Outlet />
+    </Layout>
   );
+}
+
+// Inner component for admin routes
+function AdminRoutes() {
+  useSiteSettings();
+  return <Outlet />;
 }
 
 const App = () => (
@@ -99,9 +73,48 @@ const App = () => (
             <LanguageProvider>
               <SiteContentProvider>
                 <EditModeProvider>
-                <CartProvider>
-                  <AppContent />
-                </CartProvider>
+                  <CartProvider>
+                    <Routes>
+                      {/* Public routes with shared Layout */}
+                      <Route element={<PublicLayout />}>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route path="/products/:id" element={<ProductDetail />} />
+                        <Route path="/catalog" element={<Catalog />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/contact" element={<Contact />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/thank-you" element={<ThankYou />} />
+                      </Route>
+                      
+                      {/* Admin Routes */}
+                      <Route element={<AdminRoutes />}>
+                        <Route path="/admin/login" element={<AdminLogin />} />
+                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                        <Route path="/admin/products" element={<AdminProducts />} />
+                        <Route path="/admin/products/new" element={<AdminProductForm />} />
+                        <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
+                        <Route path="/admin/categories" element={<AdminCategories />} />
+                        <Route path="/admin/inventory" element={<AdminInventory />} />
+                        <Route path="/admin/orders" element={<AdminOrders />} />
+                        <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
+                        <Route path="/admin/users" element={<AdminUsers />} />
+                        <Route path="/admin/languages" element={<AdminLanguages />} />
+                        <Route path="/admin/settings" element={<AdminSettings />} />
+                        <Route path="/admin/theme" element={<AdminTheme />} />
+                        {/* Admin Site Content with nested routes */}
+                        <Route path="/admin/site-content" element={<AdminSiteContentLayout><Index /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/products" element={<AdminSiteContentLayout><Products /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/products/:id" element={<AdminSiteContentLayout><ProductDetail /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/catalog" element={<AdminSiteContentLayout><Catalog /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/about" element={<AdminSiteContentLayout><About /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/contact" element={<AdminSiteContentLayout><Contact /></AdminSiteContentLayout>} />
+                        <Route path="/admin/site-content/cart" element={<AdminSiteContentLayout><Cart /></AdminSiteContentLayout>} />
+                      </Route>
+                      
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </CartProvider>
                 </EditModeProvider>
               </SiteContentProvider>
             </LanguageProvider>

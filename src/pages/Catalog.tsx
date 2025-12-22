@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -75,7 +74,7 @@ const Catalog = () => {
   const isLoading = productsLoading || categoriesLoading;
 
   return (
-    <Layout>
+    <>
       {/* Header */}
       <section className="bg-primary py-12 md:py-16">
         <div className="container">
@@ -340,7 +339,7 @@ const Catalog = () => {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 };
 

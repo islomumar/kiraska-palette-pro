@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ShoppingCart, Search, Star } from "lucide-react";
@@ -30,7 +29,7 @@ const Products = () => {
   const isLoading = productsLoading || categoriesLoading;
 
   return (
-    <Layout>
+    <>
       {/* Header */}
       <section className="bg-primary py-12 md:py-16">
         <div className="container">
@@ -171,7 +170,7 @@ const Products = () => {
           )}
         </div>
       </section>
-    </Layout>
+    </>
   );
 };
 
