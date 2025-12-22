@@ -1,15 +1,17 @@
 import { useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ShoppingCart, Star, X } from "lucide-react";
+import { ShoppingCart, Star, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts, formatPrice } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
+
+const ITEMS_PER_PAGE = 12;
 
 const Catalog = () => {
   const [searchParams] = useSearchParams();
@@ -33,8 +35,11 @@ const Catalog = () => {
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategory ? [initialCategory.id] : []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, 500000]);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Get unique brands from products
   const brands = useMemo(() => {
@@ -45,33 +50,97 @@ const Catalog = () => {
     return Array.from(brandSet).sort();
   }, [products]);
 
+  // Get price range from products
+  const priceRange = useMemo(() => {
+    if (products.length === 0) return { min: 0, max: 500000 };
+    const prices = products.map(p => p.price || 0).filter(p => p > 0);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices)
+    };
+  }, [products]);
+
   const toggleCategory = (id: string) => {
     setSelectedCategories((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
     );
+    setCurrentPage(1);
   };
 
   const toggleBrand = (brand: string) => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     );
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setSelectedCategories([]);
     setSelectedBrands([]);
-    setPriceRange([0, 500000]);
+    setPriceMin('');
+    setPriceMax('');
+    setSearchQuery('');
+    setCurrentPage(1);
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory = selectedCategories.length === 0 || (product.category_id && selectedCategories.includes(product.category_id));
-    const matchesBrand = selectedBrands.length === 0 || (product.brand && selectedBrands.includes(product.brand));
-    const matchesPrice = (product.price || 0) >= priceRange[0] && (product.price || 0) <= priceRange[1];
-    return matchesCategory && matchesBrand && matchesPrice;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesCategory = selectedCategories.length === 0 || (product.category_id && selectedCategories.includes(product.category_id));
+      const matchesBrand = selectedBrands.length === 0 || (product.brand && selectedBrands.includes(product.brand));
+      
+      const minPrice = priceMin ? parseFloat(priceMin) : 0;
+      const maxPrice = priceMax ? parseFloat(priceMax) : Infinity;
+      const matchesPrice = (product.price || 0) >= minPrice && (product.price || 0) <= maxPrice;
+      
+      const matchesSearch = !searchQuery || 
+        (product.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (product.brand?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+      
+      return matchesCategory && matchesBrand && matchesPrice && matchesSearch;
+    });
+  }, [products, selectedCategories, selectedBrands, priceMin, priceMax, searchQuery]);
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || priceRange[0] > 0 || priceRange[1] < 500000;
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || priceMin || priceMax || searchQuery;
   const isLoading = productsLoading || categoriesLoading;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <>
@@ -103,10 +172,25 @@ const Catalog = () => {
                   )}
                 </div>
 
+                {/* Search */}
+                <div className="space-y-2">
+                  <h3 className="font-medium text-foreground">Qidiruv</h3>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Nomi yoki brend..."
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                      className="pl-9 h-10"
+                    />
+                  </div>
+                </div>
+
                 {/* Categories */}
                 <div className="space-y-3">
                   <h3 className="font-medium text-foreground">Kategoriyalar</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
                     {categories.map((cat) => (
                       <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
                         <Checkbox
@@ -123,7 +207,7 @@ const Catalog = () => {
                 {brands.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="font-medium text-foreground">Brendlar</h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                       {brands.map((brand) => (
                         <label key={brand} className="flex items-center gap-3 cursor-pointer">
                           <Checkbox
@@ -139,18 +223,23 @@ const Catalog = () => {
 
                 {/* Price Range */}
                 <div className="space-y-3">
-                  <h3 className="font-medium text-foreground">Narx</h3>
-                  <Slider
-                    min={0}
-                    max={500000}
-                    step={10000}
-                    value={priceRange}
-                    onValueChange={setPriceRange}
-                    className="mt-4"
-                  />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{formatPrice(priceRange[0])}</span>
-                    <span>{formatPrice(priceRange[1])}</span>
+                  <h3 className="font-medium text-foreground">Narx (so'm)</h3>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="number"
+                      placeholder={formatPrice(priceRange.min)}
+                      value={priceMin}
+                      onChange={(e) => { setPriceMin(e.target.value); setCurrentPage(1); }}
+                      className="h-10 text-sm"
+                    />
+                    <span className="text-muted-foreground">—</span>
+                    <Input
+                      type="number"
+                      placeholder={formatPrice(priceRange.max)}
+                      value={priceMax}
+                      onChange={(e) => { setPriceMax(e.target.value); setCurrentPage(1); }}
+                      className="h-10 text-sm"
+                    />
                   </div>
                 </div>
               </div>
@@ -159,7 +248,7 @@ const Catalog = () => {
             {/* Mobile Filter Button */}
             <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
               <Button onClick={() => setShowFilters(true)} className="shadow-lg rounded-full">
-                🎨 Filtrlar {hasActiveFilters && `(${selectedCategories.length + selectedBrands.length})`}
+                🎨 Filtrlar {hasActiveFilters && `(${selectedCategories.length + selectedBrands.length + (searchQuery ? 1 : 0)})`}
               </Button>
             </div>
 
@@ -169,6 +258,11 @@ const Catalog = () => {
                 <p className="text-muted-foreground">
                   {filteredProducts.length} ta mahsulot topildi
                 </p>
+                {totalPages > 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    Sahifa {currentPage} / {totalPages}
+                  </p>
+                )}
               </div>
 
               {/* Products Grid */}
@@ -188,67 +282,110 @@ const Catalog = () => {
                   ))}
                 </div>
               ) : (
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                  {filteredProducts.map((product, index) => (
-                    <div
-                      key={product.id}
-                      className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
-                      {/* Badges */}
-                      <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
-                        {product.is_bestseller && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                            <Star className="h-3 w-3" />
-                            Bestseller
-                          </span>
-                        )}
-                        {product.old_price && (
-                          <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                            -{Math.round((1 - (product.price || 0) / product.old_price) * 100)}%
-                          </span>
-                        )}
-                      </div>
+                <>
+                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                    {paginatedProducts.map((product, index) => (
+                      <div
+                        key={product.id}
+                        className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
+                        style={{ animationDelay: `${index * 0.05}s` }}
+                      >
+                        {/* Badges */}
+                        <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
+                          {product.is_bestseller && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                              <Star className="h-3 w-3" />
+                              Bestseller
+                            </span>
+                          )}
+                          {product.old_price && (
+                            <span className="inline-flex items-center rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
+                              -{Math.round((1 - (product.price || 0) / product.old_price) * 100)}%
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Image */}
-                      <Link to={`${linkPrefix}/products/${product.slug}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
-                        <img
-                          src={product.image_url || '/placeholder.svg'}
-                          alt={product.name || ''}
-                          className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                      </Link>
+                        {/* Image */}
+                        <Link to={`${linkPrefix}/products/${product.slug}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
+                          <img
+                            src={product.image_url || '/placeholder.svg'}
+                            alt={product.name || ''}
+                            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                          />
+                        </Link>
 
-                      {/* Content */}
-                      <div className="p-5">
-                        <p className="text-xs font-medium text-primary uppercase tracking-wide">
-                          {product.brand}
-                        </p>
-                        <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                          <Link to={`${linkPrefix}/products/${product.slug}`}>{product.name}</Link>
-                        </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{product.volume}</p>
+                        {/* Content */}
+                        <div className="p-5">
+                          <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                            {product.brand}
+                          </p>
+                          <h3 className="mt-1 font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                            <Link to={`${linkPrefix}/products/${product.slug}`}>{product.name}</Link>
+                          </h3>
+                          <p className="mt-1 text-sm text-muted-foreground">{product.volume}</p>
 
-                        <div className="mt-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-lg font-bold text-foreground">
-                              {formatPrice(product.price || 0)}
-                            </p>
-                            {product.old_price && (
-                              <p className="text-sm text-muted-foreground line-through">
-                                {formatPrice(product.old_price)}
+                          <div className="mt-4 flex items-center justify-between">
+                            <div>
+                              <p className="text-lg font-bold text-foreground">
+                                {formatPrice(product.price || 0)}
                               </p>
-                            )}
+                              {product.old_price && (
+                                <p className="text-sm text-muted-foreground line-through">
+                                  {formatPrice(product.old_price)}
+                                </p>
+                              )}
+                            </div>
+                            <Button size="icon" variant="accent" className="rounded-full h-10 w-10">
+                              <ShoppingCart className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <Button size="icon" variant="accent" className="rounded-full h-10 w-10">
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-12">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="rounded-full"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      {getPageNumbers().map((page, index) => (
+                        typeof page === 'number' ? (
+                          <Button
+                            key={index}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="icon"
+                            onClick={() => handlePageChange(page)}
+                            className="rounded-full w-10 h-10"
+                          >
+                            {page}
+                          </Button>
+                        ) : (
+                          <span key={index} className="px-2 text-muted-foreground">...</span>
+                        )
+                      ))}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="rounded-full"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
 
               {!isLoading && filteredProducts.length === 0 && (
@@ -277,6 +414,21 @@ const Catalog = () => {
             </div>
 
             <div className="space-y-6">
+              {/* Search */}
+              <div className="space-y-2">
+                <h3 className="font-medium text-foreground">Qidiruv</h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Nomi yoki brend..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="pl-9 h-10"
+                  />
+                </div>
+              </div>
+
               {/* Categories */}
               <div className="space-y-3">
                 <h3 className="font-medium text-foreground">Kategoriyalar</h3>
@@ -313,17 +465,23 @@ const Catalog = () => {
 
               {/* Price Range */}
               <div className="space-y-3">
-                <h3 className="font-medium text-foreground">Narx</h3>
-                <Slider
-                  min={0}
-                  max={500000}
-                  step={10000}
-                  value={priceRange}
-                  onValueChange={setPriceRange}
-                />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{formatPrice(priceRange[0])}</span>
-                  <span>{formatPrice(priceRange[1])}</span>
+                <h3 className="font-medium text-foreground">Narx (so'm)</h3>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    placeholder="Dan"
+                    value={priceMin}
+                    onChange={(e) => { setPriceMin(e.target.value); setCurrentPage(1); }}
+                    className="h-10"
+                  />
+                  <span className="text-muted-foreground">—</span>
+                  <Input
+                    type="number"
+                    placeholder="Gacha"
+                    value={priceMax}
+                    onChange={(e) => { setPriceMax(e.target.value); setCurrentPage(1); }}
+                    className="h-10"
+                  />
                 </div>
               </div>
             </div>
