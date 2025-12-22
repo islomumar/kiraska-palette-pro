@@ -28,10 +28,11 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Search, Loader2, Lock, CalendarIcon, X } from 'lucide-react';
-import { format, isToday, isSameDay, startOfDay } from 'date-fns';
+import { format, isToday, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { uz } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
 
@@ -71,7 +72,10 @@ const statusColors: Record<OrderStatus, string> = {
 export default function AdminOrders() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date(),
+  });
   const { userRole } = useAuth();
 
   const isManager = userRole === 'manager';
@@ -112,16 +116,20 @@ export default function AdminOrders() {
   const orders = canViewFullData ? fullOrders : limitedOrders;
   const isLoading = canViewFullData ? isLoadingFull : isLoadingLimited;
 
-  // Filter by date - if no date selected, show today's orders
+  // Filter by date range - if no date selected, show today's orders
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
 
-    const filterDate = selectedDate || new Date(); // Default to today
+    const fromDate = dateRange?.from || new Date();
+    const toDate = dateRange?.to || fromDate;
 
     return orders.filter((order) => {
       // Date filter
       const orderDate = new Date(order.created_at);
-      const matchesDate = isSameDay(orderDate, filterDate);
+      const matchesDate = isWithinInterval(orderDate, {
+        start: startOfDay(fromDate),
+        end: endOfDay(toDate),
+      });
 
       // Search filter
       let matchesSearch = true;
@@ -140,14 +148,26 @@ export default function AdminOrders() {
 
       return matchesDate && matchesSearch && matchesStatus;
     });
-  }, [orders, selectedDate, searchQuery, statusFilter, canViewFullData]);
+  }, [orders, dateRange, searchQuery, statusFilter, canViewFullData]);
 
   const clearDateFilter = () => {
-    setSelectedDate(undefined);
+    setDateRange({ from: new Date(), to: new Date() });
   };
 
-  const displayDate = selectedDate || new Date();
-  const isShowingToday = !selectedDate || isToday(selectedDate);
+  const isShowingToday = dateRange?.from && dateRange?.to && 
+    isToday(dateRange.from) && isToday(dateRange.to);
+
+  const getDateRangeText = () => {
+    if (!dateRange?.from) return "Sana tanlang";
+    
+    if (isShowingToday) return "Bugun";
+    
+    if (!dateRange.to || format(dateRange.from, 'yyyy-MM-dd') === format(dateRange.to, 'yyyy-MM-dd')) {
+      return format(dateRange.from, "d MMMM yyyy", { locale: uz });
+    }
+    
+    return `${format(dateRange.from, "d MMM", { locale: uz })} - ${format(dateRange.to, "d MMM yyyy", { locale: uz })}`;
+  };
 
   return (
     <AdminLayout>
@@ -173,39 +193,39 @@ export default function AdminOrders() {
 
         {/* Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          {/* Date Filter */}
+          {/* Date Range Filter */}
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[200px] justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
+                    "w-[240px] justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {isShowingToday 
-                    ? "Bugun" 
-                    : format(displayDate, "d MMMM yyyy", { locale: uz })}
+                  {getDateRangeText()}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
                   initialFocus
                   className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
-            {selectedDate && (
+            {!isShowingToday && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={clearDateFilter}
                 className="h-8 w-8"
+                title="Bugunga qaytish"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -239,7 +259,7 @@ export default function AdminOrders() {
 
         {/* Orders summary */}
         <div className="text-sm text-muted-foreground">
-          {isShowingToday ? "Bugungi" : format(displayDate, "d MMMM", { locale: uz })} buyurtmalar: {filteredOrders.length} ta
+          {getDateRangeText()} buyurtmalar: <span className="font-semibold text-foreground">{filteredOrders.length} ta</span>
         </div>
 
         {/* Orders Table */}
@@ -257,7 +277,7 @@ export default function AdminOrders() {
                   {canViewFullData && <TableHead>Telefon</TableHead>}
                   <TableHead>Summa</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Vaqt</TableHead>
+                  <TableHead>Sana/Vaqt</TableHead>
                   <TableHead className="text-right">Amallar</TableHead>
                 </TableRow>
               </TableHeader>
@@ -283,7 +303,12 @@ export default function AdminOrders() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(order.created_at), 'HH:mm')}
+                      <div className="text-sm">
+                        {format(new Date(order.created_at), 'd MMM', { locale: uz })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(order.created_at), 'HH:mm')}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" asChild>
@@ -301,7 +326,7 @@ export default function AdminOrders() {
             <div className="py-12 text-center text-muted-foreground">
               {isShowingToday 
                 ? 'Bugun buyurtmalar yo\'q' 
-                : `${format(displayDate, "d MMMM", { locale: uz })} kuni buyurtmalar yo'q`}
+                : `Tanlangan sanada buyurtmalar yo'q`}
             </div>
           )}
         </div>
