@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useEditMode } from '@/contexts/EditModeContext';
 import { EditContentModal } from './EditContentModal';
 import { Badge } from '@/components/ui/badge';
@@ -6,30 +6,53 @@ import { Eye, ArrowLeft } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdminSiteContentLayoutProps {
   children: ReactNode;
 }
 
-const pageLinks = [
-  { path: '/admin/site-content', label: 'Bosh sahifa' },
-  { path: '/admin/site-content/catalog', label: 'Katalog' },
-  { path: '/admin/site-content/products', label: 'Mahsulotlar' },
-  { path: '/admin/site-content/products/lak-glossy-premium', label: 'Mahsulot (namuna)' },
-  { path: '/admin/site-content/about', label: 'Biz haqimizda' },
-  { path: '/admin/site-content/contact', label: 'Aloqa' },
-];
-
 export function AdminSiteContentLayout({ children }: AdminSiteContentLayoutProps) {
   const { setEditMode } = useEditMode();
   const location = useLocation();
+  const [firstProductSlug, setFirstProductSlug] = useState<string | null>(null);
 
   useEffect(() => {
     setEditMode(true);
     return () => setEditMode(false);
   }, [setEditMode]);
 
+  useEffect(() => {
+    const fetchFirstProduct = async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('slug')
+        .eq('is_active', true)
+        .order('position', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        setFirstProductSlug(data.slug);
+      }
+    };
+    fetchFirstProduct();
+  }, []);
+
+  const pageLinks = [
+    { path: '/admin/site-content', label: 'Bosh sahifa' },
+    { path: '/admin/site-content/catalog', label: 'Katalog' },
+    { path: '/admin/site-content/products', label: 'Mahsulotlar' },
+    ...(firstProductSlug ? [{ path: `/admin/site-content/products/${firstProductSlug}`, label: 'Mahsulot (namuna)' }] : []),
+    { path: '/admin/site-content/about', label: 'Biz haqimizda' },
+    { path: '/admin/site-content/contact', label: 'Aloqa' },
+  ];
+
   const isActivePath = (path: string) => {
+    // For product detail, check if it starts with the products path
+    if (path.includes('/products/') && location.pathname.includes('/admin/site-content/products/')) {
+      return location.pathname === path;
+    }
     return location.pathname === path;
   };
 
