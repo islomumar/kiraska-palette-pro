@@ -42,9 +42,7 @@ function SiteContentInner() {
             </div>
             <span className="text-xs text-muted-foreground ml-2">kiraska.uz - Preview Mode</span>
           </div>
-          <div className="max-h-[70vh] overflow-y-auto">
-            <SitePreview />
-          </div>
+          <SitePreview />
         </div>
 
         <p className="text-sm text-muted-foreground text-center">

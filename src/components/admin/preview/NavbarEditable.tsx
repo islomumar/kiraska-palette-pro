@@ -16,7 +16,7 @@ export function NavbarEditable() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 shadow-sm">
+    <header className="relative z-[100] w-full bg-card shadow-md border-b border-border">
       <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
         <Link to="/admin/site-content" className="flex items-center gap-2">
