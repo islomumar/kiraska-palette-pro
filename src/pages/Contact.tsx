@@ -5,37 +5,54 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PhoneInput, isValidPhone } from "@/components/ui/phone-input";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Mail, MapPin, Clock, Send, Instagram, MessageCircle } from "lucide-react";
-
-const contactInfo = [
-  {
-    icon: Phone,
-    title: "Telefon",
-    details: ["+998 90 123 45 67", "+998 71 234 56 78"],
-    href: "tel:+998901234567",
-  },
-  {
-    icon: Mail,
-    title: "Email",
-    details: ["info@kiraska.uz", "sales@kiraska.uz"],
-    href: "mailto:info@kiraska.uz",
-  },
-  {
-    icon: MapPin,
-    title: "Manzil",
-    details: ["Toshkent sh., Chilonzor tumani,", "15-mavze, 25-uy"],
-    href: "#map",
-  },
-  {
-    icon: Clock,
-    title: "Ish vaqti",
-    details: ["Dushanba - Shanba: 09:00 - 18:00", "Yakshanba: Dam olish"],
-    href: null,
-  },
-];
+import { Phone, Mail, MapPin, Clock, Send, Instagram } from "lucide-react";
+import { useSiteContent } from "@/hooks/useSiteContent";
+import { useEditMode } from "@/contexts/EditModeContext";
+import { EditableText } from "@/components/admin/EditableText";
 
 const Contact = () => {
   const { toast } = useToast();
+  const { getText } = useSiteContent();
+  const { isEditMode } = useEditMode();
+
+  const renderText = (key: string, fallback: string) => {
+    if (isEditMode) {
+      return <EditableText contentKey={key} fallback={fallback} />;
+    }
+    return getText(key, fallback);
+  };
+
+  const contactInfo = [
+    {
+      icon: Phone,
+      titleKey: "contact_phone_title",
+      titleFallback: "Telefon",
+      details: ["+998 90 123 45 67", "+998 71 234 56 78"],
+      href: "tel:+998901234567",
+    },
+    {
+      icon: Mail,
+      titleKey: "contact_email_title",
+      titleFallback: "Email",
+      details: ["info@kiraska.uz", "sales@kiraska.uz"],
+      href: "mailto:info@kiraska.uz",
+    },
+    {
+      icon: MapPin,
+      titleKey: "contact_address_title",
+      titleFallback: "Manzil",
+      details: ["Toshkent sh., Chilonzor tumani,", "15-mavze, 25-uy"],
+      href: "#map",
+    },
+    {
+      icon: Clock,
+      titleKey: "contact_hours_title",
+      titleFallback: "Ish vaqti",
+      details: ["Dushanba - Shanba: 09:00 - 18:00", "Yakshanba: Dam olish"],
+      href: null,
+    },
+  ];
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "+998",
@@ -79,13 +96,13 @@ const Contact = () => {
   return (
     <Layout>
       {/* Hero */}
-      <section className="bg-gradient-hero py-12 md:py-16">
+      <section className="bg-primary py-12 md:py-16">
         <div className="container">
           <h1 className="text-3xl font-bold text-primary-foreground md:text-4xl text-center">
-            Biz bilan bog'laning
+            {renderText('contact_hero_title', 'Biz bilan bog\'laning')}
           </h1>
           <p className="mt-3 text-primary-foreground/80 text-center max-w-xl mx-auto">
-            Savollaringiz bormi? Biz doimo yordam berishga tayyormiz!
+            {renderText('contact_hero_description', 'Savollaringiz bormi? Biz doimo yordam berishga tayyormiz!')}
           </p>
         </div>
       </section>
@@ -96,11 +113,13 @@ const Contact = () => {
             {/* Contact Form */}
             <div className="order-2 lg:order-1">
               <div className="bg-card rounded-3xl p-8 shadow-card">
-                <h2 className="text-2xl font-bold text-foreground mb-6">Xabar yuboring</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-6">
+                  {renderText('contact_form_title', 'Xabar yuboring')}
+                </h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                      Ismingiz *
+                      {renderText('contact_form_name_label', 'Ismingiz *')}
                     </label>
                     <Input
                       id="name"
@@ -114,7 +133,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
-                      Telefon raqam *
+                      {renderText('contact_form_phone_label', 'Telefon raqam *')}
                     </label>
                     <PhoneInput
                       id="phone"
@@ -129,7 +148,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                      Xabaringiz
+                      {renderText('contact_form_message_label', 'Xabaringiz')}
                     </label>
                     <Textarea
                       id="message"
@@ -146,7 +165,7 @@ const Contact = () => {
                     ) : (
                       <>
                         <Send className="h-5 w-5 mr-2" />
-                        Xabar yuborish
+                        {renderText('contact_form_submit', 'Xabar yuborish')}
                       </>
                     )}
                   </Button>
@@ -166,7 +185,9 @@ const Contact = () => {
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-4">
                       <info.icon className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-foreground">{info.title}</h3>
+                    <h3 className="font-semibold text-foreground">
+                      {renderText(info.titleKey, info.titleFallback)}
+                    </h3>
                     <div className="mt-2 space-y-1">
                       {info.details.map((detail, i) => (
                         info.href ? (
@@ -188,7 +209,9 @@ const Contact = () => {
 
               {/* Social Links */}
               <div className="p-6 bg-card rounded-2xl shadow-card">
-                <h3 className="font-semibold text-foreground mb-4">Ijtimoiy tarmoqlar</h3>
+                <h3 className="font-semibold text-foreground mb-4">
+                  {renderText('contact_social_title', 'Ijtimoiy tarmoqlar')}
+                </h3>
                 <div className="flex gap-4">
                   <a
                     href="https://t.me/kiraska_uz"
@@ -215,7 +238,9 @@ const Contact = () => {
 
           {/* Map */}
           <div id="map" className="mt-12">
-            <h2 className="text-2xl font-bold text-foreground mb-6">Bizning joylashuvimiz</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-6">
+              {renderText('contact_map_title', 'Bizning joylashuvimiz')}
+            </h2>
             <div className="aspect-[21/9] rounded-3xl overflow-hidden bg-secondary">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2997.1234567890123!2d69.2033!3d41.2911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDE3JzI4LjAiTiA2OcKwMTInMTEuOSJF!5e0!3m2!1suz!2s!4v1234567890123"

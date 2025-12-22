@@ -65,7 +65,7 @@ const About = () => {
   return (
     <Layout>
       {/* Hero */}
-      <section className="bg-gradient-hero py-16 md:py-24">
+      <section className="bg-primary py-16 md:py-24">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl font-bold text-primary-foreground md:text-5xl">
