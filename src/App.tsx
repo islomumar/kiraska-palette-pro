@@ -35,6 +35,11 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminLanguages from "./pages/admin/AdminLanguages";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTheme from "./pages/admin/AdminTheme";
+import AdminContactContent from "./pages/admin/AdminContactContent";
+import AdminHomeContent from "./pages/admin/AdminHomeContent";
+import AdminAboutContent from "./pages/admin/AdminAboutContent";
+import AdminCatalogContent from "./pages/admin/AdminCatalogContent";
+import AdminProductsContent from "./pages/admin/AdminProductsContent";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,6 +117,12 @@ const App = () => (
                         <Route path="/admin/site-content/about" element={<AdminSiteContentLayout><About /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/contact" element={<AdminSiteContentLayout><Contact /></AdminSiteContentLayout>} />
                         <Route path="/admin/site-content/cart" element={<AdminSiteContentLayout><Cart /></AdminSiteContentLayout>} />
+                        {/* Content editor pages */}
+                        <Route path="/admin/site-content/home/edit" element={<AdminHomeContent />} />
+                        <Route path="/admin/site-content/catalog/edit" element={<AdminCatalogContent />} />
+                        <Route path="/admin/site-content/products/edit" element={<AdminProductsContent />} />
+                        <Route path="/admin/site-content/about/edit" element={<AdminAboutContent />} />
+                        <Route path="/admin/site-content/contact/edit" element={<AdminContactContent />} />
                       </Route>
                       
                       <Route path="*" element={<NotFound />} />
