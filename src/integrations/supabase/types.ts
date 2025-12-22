@@ -367,6 +367,54 @@ export type Database = {
         }
         Relationships: []
       }
+      warehouse_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          product_id: string
+          quantity: number
+          reason: string
+          shop_id: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          product_id: string
+          quantity: number
+          reason: string
+          shop_id?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          product_id?: string
+          quantity?: number
+          reason?: string
+          shop_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       products_public: {

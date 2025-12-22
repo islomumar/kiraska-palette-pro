@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -36,16 +37,22 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatNumberWithSpaces } from '@/components/ui/formatted-number-input';
+import { format } from 'date-fns';
 
 interface Product {
   id: string;
   name: string;
   slug: string;
+  price: number;
   stock_quantity: number;
   low_stock_threshold: number;
   in_stock: boolean;
@@ -55,47 +62,36 @@ interface Product {
   };
 }
 
-interface StockHistoryItem {
+interface WarehouseMovement {
   id: string;
-  change: number;
-  type: string;
-  timestamp: string;
-  notes: string | null;
+  product_id: string;
+  type: 'IN' | 'OUT';
+  quantity: number;
+  reason: string;
+  created_at: string;
+  created_by: string | null;
 }
-
-const typeLabels: Record<string, string> = {
-  add: 'Qo\'shildi',
-  remove: 'Olib tashlandi',
-  sale: 'Sotildi',
-  return: 'Qaytarildi',
-  adjustment: 'Tuzatish',
-};
-
-const typeColors: Record<string, string> = {
-  add: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400',
-  remove: 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400',
-  sale: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400',
-  return: 'text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400',
-  adjustment: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400',
-};
 
 export default function AdminInventory() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'in_stock' | 'out_of_stock' | 'low_stock'>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [stockHistory, setStockHistory] = useState<StockHistoryItem[]>([]);
+  const [movements, setMovements] = useState<WarehouseMovement[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const [stockForm, setStockForm] = useState({
-    action: 'add' as 'add' | 'remove',
+    action: 'IN' as 'IN' | 'OUT',
     quantity: 1,
-    notes: '',
+    reason: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
   });
 
   const fetchProducts = async () => {
@@ -106,6 +102,7 @@ export default function AdminInventory() {
         id,
         name,
         slug,
+        price,
         stock_quantity,
         low_stock_threshold,
         in_stock,
@@ -134,14 +131,23 @@ export default function AdminInventory() {
     fetchProducts();
   }, []);
 
-  const fetchStockHistory = async (productId: string) => {
+  const fetchMovementHistory = async (productId: string) => {
     setIsLoadingHistory(true);
-    const { data, error } = await supabase
-      .from('stock_history')
+    
+    let query = supabase
+      .from('warehouse_movements')
       .select('*')
       .eq('product_id', productId)
-      .order('timestamp', { ascending: false })
-      .limit(50);
+      .order('created_at', { ascending: false });
+
+    if (dateFrom) {
+      query = query.gte('created_at', `${dateFrom}T00:00:00`);
+    }
+    if (dateTo) {
+      query = query.lte('created_at', `${dateTo}T23:59:59`);
+    }
+
+    const { data, error } = await query.limit(100);
 
     if (error) {
       toast({
@@ -150,33 +156,64 @@ export default function AdminInventory() {
         variant: 'destructive',
       });
     } else {
-      setStockHistory((data as StockHistoryItem[]) || []);
+      setMovements((data as WarehouseMovement[]) || []);
     }
     setIsLoadingHistory(false);
   };
 
-  const handleOpenStockDialog = (product: Product, action: 'add' | 'remove') => {
+  const handleOpenStockDialog = (product: Product, action: 'IN' | 'OUT') => {
     setSelectedProduct(product);
-    setStockForm({ action, quantity: 1, notes: '' });
+    setStockForm({ 
+      action, 
+      quantity: 1, 
+      reason: '',
+      date: format(new Date(), 'yyyy-MM-dd')
+    });
     setIsStockDialogOpen(true);
   };
 
   const handleOpenHistoryDialog = (product: Product) => {
     setSelectedProduct(product);
     setIsHistoryDialogOpen(true);
-    fetchStockHistory(product.id);
+    fetchMovementHistory(product.id);
   };
 
   const handleStockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
 
+    if (!stockForm.reason.trim()) {
+      toast({
+        title: 'Xatolik',
+        description: 'Sabab kiritish majburiy',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSaving(true);
 
-    const change = stockForm.action === 'add' ? stockForm.quantity : -stockForm.quantity;
+    const change = stockForm.action === 'IN' ? stockForm.quantity : -stockForm.quantity;
     const newQuantity = Math.max(0, selectedProduct.stock_quantity + change);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Insert movement record
+      const { error: movementError } = await supabase
+        .from('warehouse_movements')
+        .insert({
+          product_id: selectedProduct.id,
+          type: stockForm.action,
+          quantity: stockForm.quantity,
+          reason: stockForm.reason.trim(),
+          created_by: user?.id || null,
+          created_at: `${stockForm.date}T${format(new Date(), 'HH:mm:ss')}`,
+        });
+
+      if (movementError) throw movementError;
+
       // Update product stock
       const { error: updateError } = await supabase
         .from('products')
@@ -188,21 +225,9 @@ export default function AdminInventory() {
 
       if (updateError) throw updateError;
 
-      // Record in stock history
-      const { error: historyError } = await supabase
-        .from('stock_history')
-        .insert({
-          product_id: selectedProduct.id,
-          change: change,
-          type: stockForm.action,
-          notes: stockForm.notes || null,
-        });
-
-      if (historyError) throw historyError;
-
       toast({
         title: 'Muvaffaqiyat',
-        description: `Zaxira ${stockForm.action === 'add' ? 'qo\'shildi' : 'olib tashlandi'}`,
+        description: stockForm.action === 'IN' ? 'Kirim muvaffaqiyatli saqlandi' : 'Chiqim muvaffaqiyatli saqlandi',
       });
 
       setIsStockDialogOpen(false);
@@ -218,36 +243,41 @@ export default function AdminInventory() {
     }
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    let matchesFilter = true;
-    if (filterStatus === 'in_stock') {
-      matchesFilter = product.in_stock && product.stock_quantity > product.low_stock_threshold;
-    } else if (filterStatus === 'out_of_stock') {
-      matchesFilter = !product.in_stock || product.stock_quantity === 0;
-    } else if (filterStatus === 'low_stock') {
-      matchesFilter = product.stock_quantity > 0 && product.stock_quantity <= product.low_stock_threshold;
-    }
-    
-    return matchesSearch && matchesFilter;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      let matchesFilter = true;
+      if (filterStatus === 'in_stock') {
+        matchesFilter = product.in_stock && product.stock_quantity > product.low_stock_threshold;
+      } else if (filterStatus === 'out_of_stock') {
+        matchesFilter = !product.in_stock || product.stock_quantity === 0;
+      } else if (filterStatus === 'low_stock') {
+        matchesFilter = product.stock_quantity > 0 && product.stock_quantity <= product.low_stock_threshold;
+      }
+      
+      return matchesSearch && matchesFilter;
+    });
+  }, [products, searchQuery, filterStatus]);
 
-  const stats = {
-    total: products.length,
-    inStock: products.filter(p => p.in_stock && p.stock_quantity > 0).length,
-    outOfStock: products.filter(p => !p.in_stock || p.stock_quantity === 0).length,
-    lowStock: products.filter(p => p.stock_quantity > 0 && p.stock_quantity <= p.low_stock_threshold).length,
-  };
+  const stats = useMemo(() => {
+    const total = products.length;
+    const inStock = products.filter(p => p.in_stock && p.stock_quantity > 0).length;
+    const outOfStock = products.filter(p => !p.in_stock || p.stock_quantity === 0).length;
+    const lowStock = products.filter(p => p.stock_quantity > 0 && p.stock_quantity <= p.low_stock_threshold).length;
+    const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock_quantity), 0);
+
+    return { total, inStock, outOfStock, lowStock, totalValue };
+  }, [products]);
 
   const getStockStatus = (product: Product) => {
     if (!product.in_stock || product.stock_quantity === 0) {
-      return { label: 'Mavjud emas', color: 'text-destructive', icon: XCircle };
+      return { label: 'Mavjud emas', color: 'text-destructive', bgColor: 'bg-red-50 dark:bg-red-900/20', icon: XCircle };
     }
     if (product.stock_quantity <= product.low_stock_threshold) {
-      return { label: 'Kam qoldi', color: 'text-yellow-600', icon: AlertTriangle };
+      return { label: 'Kam qoldi', color: 'text-yellow-600', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', icon: AlertTriangle };
     }
-    return { label: 'Mavjud', color: 'text-green-600', icon: CheckCircle };
+    return { label: 'Mavjud', color: 'text-green-600', bgColor: '', icon: CheckCircle };
   };
 
   return (
@@ -260,7 +290,7 @@ export default function AdminInventory() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Jami mahsulotlar</CardTitle>
@@ -295,6 +325,17 @@ export default function AdminInventory() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{stats.lowStock}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Jami qiymat</CardTitle>
+              <DollarSign className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                {formatNumberWithSpaces(stats.totalValue)} so'm
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -352,8 +393,8 @@ export default function AdminInventory() {
                     <TableRow>
                       <TableHead>Mahsulot</TableHead>
                       <TableHead>Kategoriya</TableHead>
-                      <TableHead className="text-center">Zaxira</TableHead>
-                      <TableHead className="text-center">Chegara</TableHead>
+                      <TableHead className="text-center">Joriy zaxira</TableHead>
+                      <TableHead className="text-center">Minimal chegara</TableHead>
                       <TableHead className="text-center">Status</TableHead>
                       <TableHead className="text-right">Amallar</TableHead>
                     </TableRow>
@@ -362,12 +403,11 @@ export default function AdminInventory() {
                     {filteredProducts.map((product) => {
                       const status = getStockStatus(product);
                       const StatusIcon = status.icon;
-                      const isLowStock = product.stock_quantity > 0 && product.stock_quantity <= product.low_stock_threshold;
                       
                       return (
                         <TableRow 
                           key={product.id}
-                          className={isLowStock ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''}
+                          className={status.bgColor}
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -389,7 +429,7 @@ export default function AdminInventory() {
                             {product.category?.name || '-'}
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className={`font-semibold ${isLowStock ? 'text-yellow-600' : product.stock_quantity === 0 ? 'text-destructive' : ''}`}>
+                            <span className={`font-semibold ${status.color}`}>
                               {formatNumberWithSpaces(product.stock_quantity)}
                             </span>
                           </TableCell>
@@ -407,15 +447,17 @@ export default function AdminInventory() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleOpenStockDialog(product, 'add')}
+                                onClick={() => handleOpenStockDialog(product, 'IN')}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleOpenStockDialog(product, 'remove')}
+                                onClick={() => handleOpenStockDialog(product, 'OUT')}
                                 disabled={product.stock_quantity === 0}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Minus className="h-4 w-4" />
                               </Button>
@@ -438,58 +480,73 @@ export default function AdminInventory() {
           </CardContent>
         </Card>
 
-        {/* Stock Dialog */}
+        {/* Stock Dialog (Kirim/Chiqim) */}
         <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {stockForm.action === 'add' ? 'Zaxira qo\'shish' : 'Zaxira olib tashlash'}
+              <DialogTitle className="flex items-center gap-2">
+                {stockForm.action === 'IN' ? (
+                  <>
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    Kirim
+                  </>
+                ) : (
+                  <>
+                    <TrendingDown className="h-5 w-5 text-red-600" />
+                    Chiqim
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription>
-                {selectedProduct?.name}
+                {selectedProduct?.name} - Joriy zaxira: {formatNumberWithSpaces(selectedProduct?.stock_quantity || 0)}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleStockSubmit}>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Miqdor</Label>
+                  <Label htmlFor="quantity">Miqdor *</Label>
                   <Input
                     id="quantity"
                     type="number"
                     min={1}
-                    max={stockForm.action === 'remove' ? selectedProduct?.stock_quantity : undefined}
+                    max={stockForm.action === 'OUT' ? selectedProduct?.stock_quantity : undefined}
                     value={stockForm.quantity}
                     onChange={(e) => setStockForm((prev) => ({ ...prev, quantity: Number(e.target.value) }))}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Izoh (ixtiyoriy)</Label>
-                  <Input
-                    id="notes"
-                    value={stockForm.notes}
-                    onChange={(e) => setStockForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Sabab yoki izoh..."
+                  <Label htmlFor="reason">Sabab *</Label>
+                  <Textarea
+                    id="reason"
+                    placeholder={stockForm.action === 'IN' ? 'Masalan: Yetkazib beruvchidan keldi' : 'Masalan: Buyurtma uchun chiqarildi'}
+                    value={stockForm.reason}
+                    onChange={(e) => setStockForm((prev) => ({ ...prev, reason: e.target.value }))}
+                    required
+                    rows={3}
                   />
                 </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-sm text-muted-foreground">
-                    Hozirgi zaxira: <span className="font-semibold text-foreground">{formatNumberWithSpaces(selectedProduct?.stock_quantity || 0)}</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Yangi zaxira: <span className="font-semibold text-foreground">
-                      {formatNumberWithSpaces(Math.max(0, (selectedProduct?.stock_quantity || 0) + (stockForm.action === 'add' ? stockForm.quantity : -stockForm.quantity)))}
-                    </span>
-                  </p>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Sana</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={stockForm.date}
+                    onChange={(e) => setStockForm((prev) => ({ ...prev, date: e.target.value }))}
+                  />
                 </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsStockDialogOpen(false)}>
                   Bekor qilish
                 </Button>
-                <Button type="submit" disabled={isSaving}>
+                <Button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className={stockForm.action === 'IN' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                >
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Saqlash
+                  {stockForm.action === 'IN' ? 'Kirim saqlash' : 'Chiqim saqlash'}
                 </Button>
               </DialogFooter>
             </form>
@@ -500,49 +557,112 @@ export default function AdminInventory() {
         <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Zaxira tarixi</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Harakatlar tarixi
+              </DialogTitle>
               <DialogDescription>
                 {selectedProduct?.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="max-h-96 overflow-y-auto">
+            
+            {/* Date filters */}
+            <div className="flex gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="dateFrom">Sanadan</Label>
+                <Input
+                  id="dateFrom"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="dateTo">Sanagacha</Label>
+                <Input
+                  id="dateTo"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => selectedProduct && fetchMovementHistory(selectedProduct.id)}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Qidirish
+              </Button>
+            </div>
+
+            <div className="max-h-[400px] overflow-y-auto">
               {isLoadingHistory ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
-              ) : stockHistory.length === 0 ? (
+              ) : movements.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <History className="h-10 w-10 text-muted-foreground" />
-                  <p className="mt-2 text-muted-foreground">Tarix mavjud emas</p>
+                  <p className="mt-2 text-muted-foreground">Tarix topilmadi</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {stockHistory.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-lg border border-border p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${typeColors[item.type] || typeColors.adjustment}`}>
-                          {typeLabels[item.type] || item.type}
-                        </span>
-                        <div>
-                          <p className={`font-semibold ${item.change > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                            {item.change > 0 ? '+' : ''}{formatNumberWithSpaces(item.change)}
-                          </p>
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground">{item.notes}</p>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(item.timestamp).toLocaleString('uz-UZ')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Sana</TableHead>
+                      <TableHead>Turi</TableHead>
+                      <TableHead className="text-center">Miqdor</TableHead>
+                      <TableHead>Sabab</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {movements.map((movement) => (
+                      <TableRow key={movement.id}>
+                        <TableCell className="text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(movement.created_at), 'dd.MM.yyyy HH:mm')}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                            movement.type === 'IN' 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {movement.type === 'IN' ? (
+                              <>
+                                <TrendingUp className="h-3 w-3" />
+                                Kirim
+                              </>
+                            ) : (
+                              <>
+                                <TrendingDown className="h-3 w-3" />
+                                Chiqim
+                              </>
+                            )}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">
+                          <span className={movement.type === 'IN' ? 'text-green-600' : 'text-red-600'}>
+                            {movement.type === 'IN' ? '+' : '-'}{formatNumberWithSpaces(movement.quantity)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {movement.reason}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsHistoryDialogOpen(false)}>
+                Yopish
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
