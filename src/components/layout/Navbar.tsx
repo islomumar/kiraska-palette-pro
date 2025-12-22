@@ -8,6 +8,7 @@ import { useSiteContent } from "@/hooks/useSiteContent";
 import { useEditMode } from "@/contexts/EditModeContext";
 import { EditableText } from "@/components/admin/EditableText";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +16,7 @@ export function Navbar() {
   const { totalItems } = useCart();
   const { getText } = useSiteContent();
   const { isEditMode } = useEditMode();
+  const { settings: siteSettings } = useSiteSettings();
 
   const linkPrefix = isEditMode ? '/admin/site-content' : '';
 
@@ -46,11 +48,20 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Logo */}
         <Link to={`${linkPrefix}/`} className="flex items-center gap-2">
-          <img 
-            src="/logo.png" 
-            alt="Kiraska.uz" 
-            className="h-10 w-auto"
-          />
+          {siteSettings.logo_url ? (
+            <img 
+              src={siteSettings.logo_url} 
+              alt="Kiraska.uz" 
+              className="h-10 w-auto"
+            />
+          ) : (
+            <>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                <span className="text-xl font-bold text-primary-foreground">K</span>
+              </div>
+              <span className="text-xl font-bold text-foreground">Kiraska<span className="text-primary">.uz</span></span>
+            </>
+          )}
         </Link>
 
         {/* Desktop Navigation */}

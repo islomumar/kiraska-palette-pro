@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -28,6 +29,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { user, isAdmin, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings: siteSettings } = useSiteSettings();
 
   // Define sidebar links based on role
   const getSidebarLinks = () => {
@@ -87,11 +89,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-            <img 
-              src="/logo.png" 
-              alt="Kiraska.uz" 
-              className="h-8 w-auto"
-            />
+            {siteSettings.logo_url ? (
+              <img 
+                src={siteSettings.logo_url} 
+                alt="Kiraska.uz" 
+                className="h-8 w-auto"
+              />
+            ) : (
+              <>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <span className="text-sm font-bold text-primary-foreground">K</span>
+                </div>
+                <span className="font-bold text-foreground">Admin</span>
+              </>
+            )}
           </div>
 
           {/* Navigation - scrollable */}

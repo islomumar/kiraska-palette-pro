@@ -9,6 +9,7 @@ import { Loader2, Lock, Mail, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const loginSchema = z.object({
   email: z.string().email('Noto\'g\'ri email format'),
@@ -25,6 +26,7 @@ export default function AdminLogin() {
   const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { settings: siteSettings } = useSiteSettings();
 
   useEffect(() => {
     if (!isLoading && user && isAdmin) {
@@ -93,11 +95,17 @@ export default function AdminLogin() {
       <Card className="w-full max-w-md shadow-card-hover">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <img 
-              src="/logo.png" 
-              alt="Kiraska.uz" 
-              className="h-14 w-auto mx-auto"
-            />
+            {siteSettings.logo_url ? (
+              <img 
+                src={siteSettings.logo_url} 
+                alt="Kiraska.uz" 
+                className="h-14 w-auto mx-auto"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary mx-auto">
+                <Lock className="h-7 w-7 text-primary-foreground" />
+              </div>
+            )}
           </div>
           <CardTitle className="text-2xl">Admin Panel</CardTitle>
           <CardDescription>
