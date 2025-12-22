@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Lock, Mail, UserPlus } from 'lucide-react';
+import { Loader2, Lock, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const loginSchema = z.object({
@@ -21,9 +20,8 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [activeTab, setActiveTab] = useState('login');
   
-  const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
+  const { signIn, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { settings: siteSettings } = useSiteSettings();
@@ -51,32 +49,15 @@ export default function AdminLogin() {
 
     setIsSubmitting(true);
 
-    if (activeTab === 'login') {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast({
-          title: 'Xatolik',
-          description: 'Email yoki parol noto\'g\'ri',
-          variant: 'destructive',
-        });
-        setIsSubmitting(false);
-        return;
-      }
-    } else {
-      const { error } = await signUp(email, password);
-      if (error) {
-        toast({
-          title: 'Xatolik',
-          description: error.message || 'Ro\'yxatdan o\'tishda xatolik',
-          variant: 'destructive',
-        });
-        setIsSubmitting(false);
-        return;
-      }
+    const { error } = await signIn(email, password);
+    if (error) {
       toast({
-        title: 'Muvaffaqiyat',
-        description: 'Ro\'yxatdan o\'tdingiz! Endi admin huquqi berilishi kerak.',
+        title: 'Xatolik',
+        description: 'Email yoki parol noto\'g\'ri',
+        variant: 'destructive',
       });
+      setIsSubmitting(false);
+      return;
     }
 
     setIsSubmitting(false);
@@ -108,78 +89,64 @@ export default function AdminLogin() {
             )}
           </div>
           <CardTitle className="text-2xl">Admin Panel</CardTitle>
-          <CardDescription>
-            Tizimga kirish yoki ro'yxatdan o'tish
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Kirish</TabsTrigger>
-              <TabsTrigger value="signup">Ro'yxatdan o'tish</TabsTrigger>
-            </TabsList>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="admin@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Parol</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full" 
+        <CardDescription>
+          Tizimga kirish
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
                 disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {activeTab === 'login' ? 'Kirish...' : 'Ro\'yxatdan o\'tish...'}
-                  </>
-                ) : (
-                  <>
-                    {activeTab === 'login' ? 'Kirish' : (
-                      <>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Ro'yxatdan o'tish
-                      </>
-                    )}
-                  </>
-                )}
-              </Button>
-            </form>
-          </Tabs>
-        </CardContent>
+              />
+            </div>
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Parol</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10"
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
+          </div>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Kirish...
+              </>
+            ) : (
+              'Kirish'
+            )}
+          </Button>
+        </form>
+      </CardContent>
       </Card>
     </div>
   );
