@@ -26,6 +26,7 @@ export type Database = {
           name_ml: Json | null
           position: number | null
           seo_description_ml: Json | null
+          seo_image_url: string | null
           seo_keywords_ml: Json | null
           seo_title_ml: Json | null
           slug: string
@@ -42,6 +43,7 @@ export type Database = {
           name_ml?: Json | null
           position?: number | null
           seo_description_ml?: Json | null
+          seo_image_url?: string | null
           seo_keywords_ml?: Json | null
           seo_title_ml?: Json | null
           slug: string
@@ -58,6 +60,7 @@ export type Database = {
           name_ml?: Json | null
           position?: number | null
           seo_description_ml?: Json | null
+          seo_image_url?: string | null
           seo_keywords_ml?: Json | null
           seo_title_ml?: Json | null
           slug?: string
@@ -143,6 +146,7 @@ export type Database = {
       products: {
         Row: {
           brand: string | null
+          canonical_url: string | null
           category_id: string | null
           color_name: string | null
           colors: Json | null
@@ -162,6 +166,7 @@ export type Database = {
           position: number | null
           price: number
           seo_description_ml: Json | null
+          seo_image_url: string | null
           seo_keywords_ml: Json | null
           seo_title_ml: Json | null
           short_description: string | null
@@ -174,6 +179,7 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
+          canonical_url?: string | null
           category_id?: string | null
           color_name?: string | null
           colors?: Json | null
@@ -193,6 +199,7 @@ export type Database = {
           position?: number | null
           price?: number
           seo_description_ml?: Json | null
+          seo_image_url?: string | null
           seo_keywords_ml?: Json | null
           seo_title_ml?: Json | null
           short_description?: string | null
@@ -205,6 +212,7 @@ export type Database = {
         }
         Update: {
           brand?: string | null
+          canonical_url?: string | null
           category_id?: string | null
           color_name?: string | null
           colors?: Json | null
@@ -224,6 +232,7 @@ export type Database = {
           position?: number | null
           price?: number
           seo_description_ml?: Json | null
+          seo_image_url?: string | null
           seo_keywords_ml?: Json | null
           seo_title_ml?: Json | null
           short_description?: string | null
