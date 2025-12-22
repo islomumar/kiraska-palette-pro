@@ -30,34 +30,20 @@ const Catalog = () => {
   const { data: products = [], isLoading: productsLoading } = useProducts();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
 
-  // Find initial category ID from slug
   const initialCategory = categories.find(c => c.slug === initialCategorySlug);
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategory ? [initialCategory.id] : []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Get unique brands from products
   const brands = useMemo(() => {
     const brandSet = new Set<string>();
     products.forEach(p => {
       if (p.brand) brandSet.add(p.brand);
     });
     return Array.from(brandSet).sort();
-  }, [products]);
-
-  // Get price range from products
-  const priceRange = useMemo(() => {
-    if (products.length === 0) return { min: 0, max: 500000 };
-    const prices = products.map(p => p.price || 0).filter(p => p > 0);
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices)
-    };
   }, [products]);
 
   const toggleCategory = (id: string) => {
@@ -77,8 +63,6 @@ const Catalog = () => {
   const clearFilters = () => {
     setSelectedCategories([]);
     setSelectedBrands([]);
-    setPriceMin('');
-    setPriceMax('');
     setSearchQuery('');
     setCurrentPage(1);
   };
@@ -87,27 +71,21 @@ const Catalog = () => {
     return products.filter((product) => {
       const matchesCategory = selectedCategories.length === 0 || (product.category_id && selectedCategories.includes(product.category_id));
       const matchesBrand = selectedBrands.length === 0 || (product.brand && selectedBrands.includes(product.brand));
-      
-      const minPrice = priceMin ? parseFloat(priceMin) : 0;
-      const maxPrice = priceMax ? parseFloat(priceMax) : Infinity;
-      const matchesPrice = (product.price || 0) >= minPrice && (product.price || 0) <= maxPrice;
-      
       const matchesSearch = !searchQuery || 
         (product.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (product.brand?.toLowerCase() || '').includes(searchQuery.toLowerCase());
       
-      return matchesCategory && matchesBrand && matchesPrice && matchesSearch;
+      return matchesCategory && matchesBrand && matchesSearch;
     });
-  }, [products, selectedCategories, selectedBrands, priceMin, priceMax, searchQuery]);
+  }, [products, selectedCategories, selectedBrands, searchQuery]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
-  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || priceMin || priceMax || searchQuery;
+  const hasActiveFilters = selectedCategories.length > 0 || selectedBrands.length > 0 || searchQuery;
   const isLoading = productsLoading || categoriesLoading;
 
   const handlePageChange = (page: number) => {
@@ -115,7 +93,6 @@ const Catalog = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -144,7 +121,6 @@ const Catalog = () => {
 
   return (
     <>
-      {/* Header */}
       <section className="bg-primary py-12 md:py-16">
         <div className="container">
           <h1 className="text-3xl font-bold text-primary-foreground md:text-4xl text-center">
@@ -159,7 +135,6 @@ const Catalog = () => {
       <section className="py-8 md:py-12 bg-background">
         <div className="container">
           <div className="flex gap-8">
-            {/* Sidebar Filters - Desktop */}
             <aside className="hidden lg:block w-72 shrink-0">
               <div className="sticky top-24 space-y-6 bg-card p-6 rounded-3xl shadow-card">
                 <div className="flex items-center justify-between">
@@ -172,7 +147,6 @@ const Catalog = () => {
                   )}
                 </div>
 
-                {/* Search */}
                 <div className="space-y-2">
                   <h3 className="font-medium text-foreground">Qidiruv</h3>
                   <div className="relative">
@@ -187,7 +161,6 @@ const Catalog = () => {
                   </div>
                 </div>
 
-                {/* Categories */}
                 <div className="space-y-3">
                   <h3 className="font-medium text-foreground">Kategoriyalar</h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -203,7 +176,6 @@ const Catalog = () => {
                   </div>
                 </div>
 
-                {/* Brands */}
                 {brands.length > 0 && (
                   <div className="space-y-3">
                     <h3 className="font-medium text-foreground">Brendlar</h3>
@@ -220,39 +192,15 @@ const Catalog = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Price Range */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-foreground">Narx (so'm)</h3>
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="number"
-                      placeholder={formatPrice(priceRange.min)}
-                      value={priceMin}
-                      onChange={(e) => { setPriceMin(e.target.value); setCurrentPage(1); }}
-                      className="h-10 text-sm"
-                    />
-                    <span className="text-muted-foreground">—</span>
-                    <Input
-                      type="number"
-                      placeholder={formatPrice(priceRange.max)}
-                      value={priceMax}
-                      onChange={(e) => { setPriceMax(e.target.value); setCurrentPage(1); }}
-                      className="h-10 text-sm"
-                    />
-                  </div>
-                </div>
               </div>
             </aside>
 
-            {/* Mobile Filter Button */}
             <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
               <Button onClick={() => setShowFilters(true)} className="shadow-lg rounded-full">
                 🎨 Filtrlar {hasActiveFilters && `(${selectedCategories.length + selectedBrands.length + (searchQuery ? 1 : 0)})`}
               </Button>
             </div>
 
-            {/* Main Content */}
             <div className="flex-1">
               <div className="flex items-center justify-between mb-6">
                 <p className="text-muted-foreground">
@@ -265,7 +213,6 @@ const Catalog = () => {
                 )}
               </div>
 
-              {/* Products Grid */}
               {isLoading ? (
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   {[...Array(6)].map((_, i) => (
@@ -290,7 +237,6 @@ const Catalog = () => {
                         className="group relative overflow-hidden rounded-3xl bg-card shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in-up"
                         style={{ animationDelay: `${index * 0.05}s` }}
                       >
-                        {/* Badges */}
                         <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
                           {product.is_bestseller && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
@@ -305,7 +251,6 @@ const Catalog = () => {
                           )}
                         </div>
 
-                        {/* Image */}
                         <Link to={`${linkPrefix}/products/${product.slug}`} className="block aspect-square overflow-hidden bg-secondary/30 p-4">
                           <img
                             src={product.image_url || '/placeholder.svg'}
@@ -315,7 +260,6 @@ const Catalog = () => {
                           />
                         </Link>
 
-                        {/* Content */}
                         <div className="p-5">
                           <p className="text-xs font-medium text-primary uppercase tracking-wide">
                             {product.brand}
@@ -345,7 +289,6 @@ const Catalog = () => {
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 mt-12">
                       <Button
@@ -401,7 +344,6 @@ const Catalog = () => {
         </div>
       </section>
 
-      {/* Mobile Filter Sheet */}
       {showFilters && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-foreground/50 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
@@ -414,7 +356,6 @@ const Catalog = () => {
             </div>
 
             <div className="space-y-6">
-              {/* Search */}
               <div className="space-y-2">
                 <h3 className="font-medium text-foreground">Qidiruv</h3>
                 <div className="relative">
@@ -429,7 +370,6 @@ const Catalog = () => {
                 </div>
               </div>
 
-              {/* Categories */}
               <div className="space-y-3">
                 <h3 className="font-medium text-foreground">Kategoriyalar</h3>
                 <div className="space-y-2">
@@ -445,7 +385,6 @@ const Catalog = () => {
                 </div>
               </div>
 
-              {/* Brands */}
               {brands.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-medium text-foreground">Brendlar</h3>
@@ -462,28 +401,6 @@ const Catalog = () => {
                   </div>
                 </div>
               )}
-
-              {/* Price Range */}
-              <div className="space-y-3">
-                <h3 className="font-medium text-foreground">Narx (so'm)</h3>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    placeholder="Dan"
-                    value={priceMin}
-                    onChange={(e) => { setPriceMin(e.target.value); setCurrentPage(1); }}
-                    className="h-10"
-                  />
-                  <span className="text-muted-foreground">—</span>
-                  <Input
-                    type="number"
-                    placeholder="Gacha"
-                    value={priceMax}
-                    onChange={(e) => { setPriceMax(e.target.value); setCurrentPage(1); }}
-                    className="h-10"
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="mt-8 flex gap-4">
@@ -502,3 +419,4 @@ const Catalog = () => {
 };
 
 export default Catalog;
+
