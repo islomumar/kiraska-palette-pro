@@ -6,6 +6,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Simple in-memory rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 3; // Max 3 orders per minute per IP
+
+function isRateLimited(clientIP: string): { limited: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(clientIP);
+  
+  // Clean up expired entries periodically
+  if (Math.random() < 0.1) {
+    for (const [ip, data] of rateLimitMap.entries()) {
+      if (now > data.resetTime) {
+        rateLimitMap.delete(ip);
+      }
+    }
+  }
+  
+  if (!record || now > record.resetTime) {
+    // New window
+    rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { limited: false };
+  }
+  
+  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
+    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+    console.log(`Rate limit exceeded for IP: ${clientIP}, retry after ${retryAfter}s`);
+    return { limited: true, retryAfter };
+  }
+  
+  record.count++;
+  return { limited: false };
+}
+
+function getClientIP(req: Request): string {
+  // Try various headers that might contain the real IP
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  
+  const realIP = req.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = req.headers.get('cf-connecting-ip');
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  // Fallback - use a hash of user-agent + other headers as identifier
+  const userAgent = req.headers.get('user-agent') || 'unknown';
+  return `ua-${userAgent.substring(0, 50)}`;
+}
+
 interface OrderProduct {
   id: string;
   name: string;
@@ -230,16 +286,53 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limiting check
+    const clientIP = getClientIP(req);
+    const rateLimitResult = isRateLimited(clientIP);
+    
+    if (rateLimitResult.limited) {
+      console.log(`Rate limited request from IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Juda ko\'p so\'rov. Iltimos biroz kuting.',
+          retryAfter: rateLimitResult.retryAfter 
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimitResult.retryAfter || 60)
+          } 
+        }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: OrderRequest = await req.json();
 
+    // Input sanitization
+    const sanitizedCustomerName = String(body.customerName || '').trim().substring(0, 100);
+    const sanitizedPhone = String(body.phone || '').trim().substring(0, 20);
+    const sanitizedAddress = String(body.address || '').trim().substring(0, 500);
+    const sanitizedNotes = body.notes ? String(body.notes).trim().substring(0, 1000) : null;
+
     // Validate required input fields
-    if (!body.customerName || !body.phone || !body.address || !body.products) {
+    if (!sanitizedCustomerName || !sanitizedPhone || !sanitizedAddress || !body.products) {
       return new Response(
         JSON.stringify({ error: 'Majburiy maydonlar to\'ldirilmagan' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate phone format (basic check)
+    const phoneRegex = /^[\d\s\+\-\(\)]{9,20}$/;
+    if (!phoneRegex.test(sanitizedPhone)) {
+      return new Response(
+        JSON.stringify({ error: 'Telefon raqami noto\'g\'ri formatda' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -247,6 +340,14 @@ serve(async (req) => {
     if (!Array.isArray(body.products) || body.products.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Mahsulotlar ro\'yxati bo\'sh' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Limit number of products per order
+    if (body.products.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Bir buyurtmada 50 dan ortiq mahsulot bo\'lishi mumkin emas' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -282,14 +383,14 @@ serve(async (req) => {
     // Prepare products for storage (without serverPrice field)
     const productsForStorage = validatedProducts.map(({ serverPrice, ...product }) => product);
 
-    // Save order to database with SERVER-CALCULATED total
+    // Save order to database with SERVER-CALCULATED total and sanitized inputs
     const { data: order, error } = await supabase
       .from('orders')
       .insert({
-        customer_name: body.customerName,
-        phone: body.phone,
-        address: body.address,
-        notes: body.notes || null,
+        customer_name: sanitizedCustomerName,
+        phone: sanitizedPhone,
+        address: sanitizedAddress,
+        notes: sanitizedNotes,
         products: productsForStorage,
         total_amount: calculatedTotal, // Always use server-calculated total
         status: 'pending',
