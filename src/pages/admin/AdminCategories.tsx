@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,7 @@ import { MultiLangValue, getLocalizedText, jsonToMultiLang } from '@/components/
 import { GlobalLangTabs } from '@/components/admin/GlobalLangTabs';
 import { SingleLangInput } from '@/components/admin/SingleLangInput';
 import { Json } from '@/integrations/supabase/types';
+import { AdminPagination } from '@/components/admin/AdminPagination';
 
 interface Category {
   id: string;
@@ -63,6 +64,8 @@ interface CategoryFormData {
   is_active: boolean;
 }
 
+const ITEMS_PER_PAGE = 50;
+
 export default function AdminCategories() {
   const { currentLanguage } = useLanguage();
   const { t } = useTranslations();
@@ -77,6 +80,7 @@ export default function AdminCategories() {
   const [imageInputMode, setImageInputMode] = useState<'url' | 'upload'>('url');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formLanguage, setFormLanguage] = useState<Language>('uz');
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<CategoryFormData>({
@@ -86,6 +90,12 @@ export default function AdminCategories() {
     image_url: '',
     is_active: true,
   });
+
+  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return categories.slice(start, start + ITEMS_PER_PAGE);
+  }, [categories, currentPage]);
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -348,76 +358,85 @@ export default function AdminCategories() {
                 <p className="text-muted-foreground">{t('admin.categories.notFound')}</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">{t('form.image')}</TableHead>
-                      <TableHead>{t('form.name')}</TableHead>
-                      <TableHead>{t('form.slug')}</TableHead>
-                      <TableHead>{t('common.status')}</TableHead>
-                      <TableHead className="text-right">{t('common.actions')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {categories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell>
-                          <div className="h-10 w-10 rounded-md overflow-hidden bg-secondary">
-                            {category.image_url ? (
-                              <img
-                                src={category.image_url}
-                                alt={getLocalizedText(category.name_ml, currentLanguage) || category.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center">
-                                <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {getLocalizedText(category.name_ml, currentLanguage) || category.name}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {category.slug}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={category.is_active}
-                              onCheckedChange={(checked) => handleToggleActive(category.id, checked)}
-                            />
-                            <Badge variant={category.is_active ? 'default' : 'secondary'}>
-                              {category.is_active ? t('common.active') : t('common.inactive')}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(category)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setDeleteId(category.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">{t('form.image')}</TableHead>
+                        <TableHead>{t('form.name')}</TableHead>
+                        <TableHead>{t('form.slug')}</TableHead>
+                        <TableHead>{t('common.status')}</TableHead>
+                        <TableHead className="text-right">{t('common.actions')}</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedCategories.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell>
+                            <div className="h-10 w-10 rounded-md overflow-hidden bg-secondary">
+                              {category.image_url ? (
+                                <img
+                                  src={category.image_url}
+                                  alt={getLocalizedText(category.name_ml, currentLanguage) || category.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center">
+                                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {getLocalizedText(category.name_ml, currentLanguage) || category.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {category.slug}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={category.is_active}
+                                onCheckedChange={(checked) => handleToggleActive(category.id, checked)}
+                              />
+                              <Badge variant={category.is_active ? 'default' : 'secondary'}>
+                                {category.is_active ? t('common.active') : t('common.inactive')}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(category)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => setDeleteId(category.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <AdminPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={categories.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             )}
           </CardContent>
         </Card>
