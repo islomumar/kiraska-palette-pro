@@ -35,6 +35,16 @@ export function FooterEditable() {
                 <Instagram className="h-5 w-5" />
               </span>
             </div>
+            <div className="mt-3 space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Send className="h-4 w-4 text-muted-foreground" />
+                <EditableText contentKey="social_telegram" fallback="https://t.me/kiraska_uz" className="text-muted-foreground" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Instagram className="h-4 w-4 text-muted-foreground" />
+                <EditableText contentKey="social_instagram" fallback="https://instagram.com/kiraska_uz" className="text-muted-foreground" />
+              </div>
+            </div>
           </div>
 
           {/* Categories */}
