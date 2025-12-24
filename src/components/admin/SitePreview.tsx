@@ -22,7 +22,7 @@ export function SitePreview() {
       <NavbarEditable />
       
       {/* Scrollable content area */}
-      <div ref={scrollRef} className="max-h-[60vh] overflow-y-auto">
+      <div ref={scrollRef} className="max-h-[80vh] overflow-y-auto">
         <main>
           <HeroBannerEditable />
           <CategoriesEditable />
