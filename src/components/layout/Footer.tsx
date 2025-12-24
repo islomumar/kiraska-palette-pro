@@ -64,13 +64,25 @@ export function Footer() {
               {renderText('footer_description', "O'zbekistondagi eng katta bo'yoq va lak mahsulotlari do'koni. Sifatli mahsulotlar, qulay narxlar.")}
             </p>
             <div className="flex gap-3">
-              <a href="https://t.me/kiraska_uz" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <a href={getText('social_telegram', 'https://t.me/kiraska_uz')} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                 <Send className="h-5 w-5" />
               </a>
-              <a href="https://instagram.com/kiraska_uz" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <a href={getText('social_instagram', 'https://instagram.com/kiraska_uz')} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
             </div>
+            {isEditMode && (
+              <div className="mt-3 space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-muted-foreground" />
+                  <EditableText contentKey="social_telegram" fallback="https://t.me/kiraska_uz" className="text-muted-foreground" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4 text-muted-foreground" />
+                  <EditableText contentKey="social_instagram" fallback="https://instagram.com/kiraska_uz" className="text-muted-foreground" />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
