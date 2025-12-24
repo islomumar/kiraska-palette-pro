@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -26,13 +26,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Search, Loader2, Lock, CalendarIcon, X } from 'lucide-react';
+import { Eye, Search, Loader2, Lock, CalendarIcon, X, Trash2 } from 'lucide-react';
 import { format, isToday, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { uz } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
+import { toast } from 'sonner';
 
 type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
 
@@ -77,9 +89,30 @@ export default function AdminOrders() {
     to: new Date(),
   });
   const { userRole } = useAuth();
+  const queryClient = useQueryClient();
 
   const isManager = userRole === 'manager';
   const canViewFullData = userRole === 'admin' || userRole === 'superadmin';
+  const canDelete = userRole === 'superadmin';
+
+  // Delete order mutation
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-full'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-limited'] });
+      toast.success('Buyurtma muvaffaqiyatli o\'chirildi');
+    },
+    onError: () => {
+      toast.error('Buyurtmani o\'chirishda xatolik yuz berdi');
+    },
+  });
 
   // Fetch full orders for admin/superadmin
   const { data: fullOrders, isLoading: isLoadingFull } = useQuery({
@@ -311,12 +344,44 @@ export default function AdminOrders() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/admin/orders/${order.id}`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Ko'rish
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/admin/orders/${order.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ko'rish
+                          </Link>
+                        </Button>
+                        {canDelete && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Buyurtmani o'chirish</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Haqiqatan ham bu buyurtmani o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteOrderMutation.mutate(order.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  O'chirish
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
