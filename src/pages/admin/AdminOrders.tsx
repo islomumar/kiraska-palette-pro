@@ -93,7 +93,7 @@ export default function AdminOrders() {
 
   const isManager = userRole === 'manager';
   const canViewFullData = userRole === 'admin' || userRole === 'superadmin';
-  const canDelete = userRole === 'superadmin';
+  const canDelete = userRole === 'superadmin' || userRole === 'admin';
 
   // Delete order mutation
   const deleteOrderMutation = useMutation({
