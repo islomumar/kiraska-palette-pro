@@ -40,6 +40,7 @@ import AdminHomeContent from "./pages/admin/AdminHomeContent";
 import AdminAboutContent from "./pages/admin/AdminAboutContent";
 import AdminCatalogContent from "./pages/admin/AdminCatalogContent";
 import AdminProductsContent from "./pages/admin/AdminProductsContent";
+import AdminFooterContent from "./pages/admin/AdminFooterContent";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,6 +124,7 @@ const App = () => (
                         <Route path="/admin/site-content/products/edit" element={<AdminProductsContent />} />
                         <Route path="/admin/site-content/about/edit" element={<AdminAboutContent />} />
                         <Route path="/admin/site-content/contact/edit" element={<AdminContactContent />} />
+                        <Route path="/admin/footer" element={<AdminFooterContent />} />
                       </Route>
                       
                       <Route path="*" element={<NotFound />} />
