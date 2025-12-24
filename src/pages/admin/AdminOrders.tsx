@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminPagination } from '@/components/admin/AdminPagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
@@ -46,6 +47,8 @@ import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 import { toast } from 'sonner';
 
+const ITEMS_PER_PAGE = 10;
+
 type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
 
 interface Order {
@@ -84,6 +87,7 @@ const statusColors: Record<OrderStatus, string> = {
 export default function AdminOrders() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(),
     to: new Date(),
@@ -182,6 +186,22 @@ export default function AdminOrders() {
       return matchesDate && matchesSearch && matchesStatus;
     });
   }, [orders, dateRange, searchQuery, statusFilter, canViewFullData]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredOrders, currentPage]);
+
+  // Reset page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [dateRange, searchQuery, statusFilter]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const clearDateFilter = () => {
     setDateRange({ from: new Date(), to: new Date() });
@@ -301,92 +321,101 @@ export default function AdminOrders() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : filteredOrders && filteredOrders.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  {canViewFullData && <TableHead>Mijoz</TableHead>}
-                  {canViewFullData && <TableHead>Telefon</TableHead>}
-                  <TableHead>Summa</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Sana/Vaqt</TableHead>
-                  <TableHead className="text-right">Amallar</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order, index) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">
-                      {index + 1}
-                    </TableCell>
-                    {canViewFullData && (
-                      <TableCell className="font-medium">{order.customer_name}</TableCell>
-                    )}
-                    {canViewFullData && (
-                      <TableCell>{order.phone}</TableCell>
-                    )}
-                    <TableCell>{order.total_amount.toLocaleString()} so'm</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={statusColors[order.status]}
-                      >
-                        {statusLabels[order.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {format(new Date(order.created_at), 'd MMM', { locale: uz })}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(order.created_at), 'HH:mm')}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/admin/orders/${order.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ko'rish
-                          </Link>
-                        </Button>
-                        {canDelete && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Buyurtmani o'chirish</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Haqiqatan ham bu buyurtmani o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteOrderMutation.mutate(order.id)}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                >
-                                  O'chirish
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </TableCell>
+          ) : paginatedOrders && paginatedOrders.length > 0 ? (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    {canViewFullData && <TableHead>Mijoz</TableHead>}
+                    {canViewFullData && <TableHead>Telefon</TableHead>}
+                    <TableHead>Summa</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Sana/Vaqt</TableHead>
+                    <TableHead className="text-right">Amallar</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedOrders.map((order, index) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                      </TableCell>
+                      {canViewFullData && (
+                        <TableCell className="font-medium">{order.customer_name}</TableCell>
+                      )}
+                      {canViewFullData && (
+                        <TableCell>{order.phone}</TableCell>
+                      )}
+                      <TableCell>{order.total_amount.toLocaleString()} so'm</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={statusColors[order.status]}
+                        >
+                          {statusLabels[order.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {format(new Date(order.created_at), 'd MMM', { locale: uz })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(order.created_at), 'HH:mm')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/admin/orders/${order.id}`}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ko'rish
+                            </Link>
+                          </Button>
+                          {canDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Buyurtmani o'chirish</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Haqiqatan ham bu buyurtmani o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Bekor qilish</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteOrderMutation.mutate(order.id)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    O'chirish
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <AdminPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredOrders.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={handlePageChange}
+              />
+            </>
           ) : (
             <div className="py-12 text-center text-muted-foreground">
               {isShowingToday 
