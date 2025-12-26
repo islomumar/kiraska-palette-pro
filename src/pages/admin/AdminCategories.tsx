@@ -312,70 +312,52 @@ export default function AdminCategories() {
     }
 
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(10);
+
     const fileExt = file.name.split('.').pop();
     const fileName = `category-${Date.now()}.${fileExt}`;
     const filePath = `categories/${fileName}`;
 
-    // Use XMLHttpRequest for progress tracking
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
+    // Supabase storage upload doesn't expose progress events in the browser.
+    // We show a simulated progress bar while the upload is in-flight.
+    const progressTimer = window.setInterval(() => {
+      setUploadProgress((p) => {
+        if (p >= 90) return p;
+        return Math.min(90, p + Math.floor(Math.random() * 8) + 3);
+      });
+    }, 350);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
-    const xhr = new XMLHttpRequest();
-    
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(progress);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
       }
-    });
 
-    xhr.addEventListener('load', async () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const { data: publicUrlData } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(filePath);
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
 
-        setFormData((prev) => ({ ...prev, image_url: publicUrlData.publicUrl }));
-        setIsUploading(false);
-        setUploadProgress(100);
-        toast({
-          title: t('common.success'),
-          description: t('image.uploadSuccess'),
-        });
-      } else {
-        toast({
-          title: t('common.error'),
-          description: t('image.uploadError'),
-          variant: 'destructive',
-        });
-        setIsUploading(false);
-        setUploadProgress(0);
-      }
-    });
-
-    xhr.addEventListener('error', () => {
+      setFormData((prev) => ({ ...prev, image_url: publicUrlData.publicUrl }));
+      setUploadProgress(100);
+      toast({
+        title: t('common.success'),
+        description: t('image.uploadSuccess'),
+      });
+    } catch (e) {
+      console.error('Category image upload error:', e);
       toast({
         title: t('common.error'),
         description: t('image.uploadError'),
         variant: 'destructive',
       });
-      setIsUploading(false);
       setUploadProgress(0);
-    });
-
-    xhr.open('POST', `${supabaseUrl}/storage/v1/object/product-images/${filePath}`);
-    xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token || supabaseKey}`);
-    xhr.setRequestHeader('x-upsert', 'true');
-    xhr.send(file);
-    toast({
-      title: t('common.success'),
-      description: t('image.uploadSuccess'),
-    });
+    } finally {
+      window.clearInterval(progressTimer);
+      setIsUploading(false);
+    }
   };
 
   useEffect(() => {
