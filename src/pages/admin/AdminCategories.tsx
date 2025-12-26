@@ -759,7 +759,7 @@ export default function AdminCategories() {
               </form>
             </ScrollArea>
 
-            <DialogFooter className="flex-shrink-0 pt-4 border-t">
+            <DialogFooter className="flex-shrink-0 pt-4 mt-4 border-t gap-2">
               <Button
                 type="button"
                 variant="outline"
