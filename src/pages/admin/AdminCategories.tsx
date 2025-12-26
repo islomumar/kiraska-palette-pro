@@ -655,7 +655,7 @@ export default function AdminCategories() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="w-full max-w-[95vw] sm:max-w-[700px] md:max-w-[800px] max-h-[85vh] flex flex-col p-6">
+          <DialogContent className="w-full max-w-[95vw] sm:max-w-[700px] md:max-w-[800px] max-h-[90vh] flex flex-col p-6 overflow-hidden">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle>
                 {editingCategory ? t('admin.categories.edit') : t('admin.categories.new')}
@@ -667,7 +667,7 @@ export default function AdminCategories() {
               </DialogDescription>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 pr-4">
+            <ScrollArea className="flex-1 min-h-0 pr-4">
               <form id="category-form" onSubmit={handleSubmit} className="space-y-4 py-2">
                 <GlobalLangTabs activeLanguage={formLanguage} onLanguageChange={setFormLanguage} />
                 
