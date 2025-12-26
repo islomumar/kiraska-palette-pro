@@ -705,7 +705,7 @@ export default function AdminCategories() {
               </DialogDescription>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 min-h-0 pr-4">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-4">
               <form id="category-form" onSubmit={handleSubmit} className="space-y-4 py-2">
                 <GlobalLangTabs activeLanguage={formLanguage} onLanguageChange={setFormLanguage} />
                 
@@ -810,7 +810,7 @@ export default function AdminCategories() {
                   />
                 </div>
               </form>
-            </ScrollArea>
+            </div>
 
             <DialogFooter className="flex-shrink-0 pt-4 mt-4 border-t gap-2">
               <Button
