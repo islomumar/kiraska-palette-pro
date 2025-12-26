@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, FolderTree, Loader2, Upload, Link as LinkIcon, ImageIcon, Package } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
@@ -85,6 +86,7 @@ export default function AdminCategories() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [imageInputMode, setImageInputMode] = useState<'url' | 'upload'>('url');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formLanguage, setFormLanguage] = useState<Language>('uz');
@@ -310,30 +312,66 @@ export default function AdminCategories() {
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
     const fileExt = file.name.split('.').pop();
     const fileName = `category-${Date.now()}.${fileExt}`;
     const filePath = `categories/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file);
+    // Use XMLHttpRequest for progress tracking
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
 
-    if (uploadError) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(progress);
+      }
+    });
+
+    xhr.addEventListener('load', async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const { data: publicUrlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        setFormData((prev) => ({ ...prev, image_url: publicUrlData.publicUrl }));
+        setIsUploading(false);
+        setUploadProgress(100);
+        toast({
+          title: t('common.success'),
+          description: t('image.uploadSuccess'),
+        });
+      } else {
+        toast({
+          title: t('common.error'),
+          description: t('image.uploadError'),
+          variant: 'destructive',
+        });
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
+    });
+
+    xhr.addEventListener('error', () => {
       toast({
         title: t('common.error'),
         description: t('image.uploadError'),
         variant: 'destructive',
       });
       setIsUploading(false);
-      return;
-    }
+      setUploadProgress(0);
+    });
 
-    const { data: publicUrlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    setFormData((prev) => ({ ...prev, image_url: publicUrlData.publicUrl }));
-    setIsUploading(false);
+    xhr.open('POST', `${supabaseUrl}/storage/v1/object/product-images/${filePath}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token || supabaseKey}`);
+    xhr.setRequestHeader('x-upsert', 'true');
+    xhr.send(file);
     toast({
       title: t('common.success'),
       description: t('image.uploadSuccess'),
@@ -722,7 +760,7 @@ export default function AdminCategories() {
                         onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
                       />
                     </TabsContent>
-                    <TabsContent value="upload" className="space-y-2">
+                    <TabsContent value="upload" className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Input
                           type="file"
@@ -730,8 +768,19 @@ export default function AdminCategories() {
                           onChange={handleImageUpload}
                           disabled={isUploading}
                         />
-                        {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
                       </div>
+                      {isUploading && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Yuklanmoqda...
+                            </span>
+                            <span className="font-medium">{uploadProgress}%</span>
+                          </div>
+                          <Progress value={uploadProgress} className="h-2" />
+                        </div>
+                      )}
                     </TabsContent>
                   </Tabs>
                   {formData.image_url && (
