@@ -760,14 +760,18 @@ export default function AdminCategories() {
                         onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
                       />
                     </TabsContent>
-                    <TabsContent value="upload" className="space-y-3">
-                      <div className="flex items-center gap-2">
+                    <TabsContent value="upload" className="space-y-3 mt-2">
+                      <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-primary/50 transition-colors">
                         <Input
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
                           disabled={isUploading}
+                          className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                         />
+                        <p className="text-xs text-muted-foreground mt-2">
+                          JPG, PNG, WebP yoki GIF (max 5MB)
+                        </p>
                       </div>
                       {isUploading && (
                         <div className="space-y-2">
